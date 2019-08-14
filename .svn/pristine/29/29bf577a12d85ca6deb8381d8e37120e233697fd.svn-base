@@ -1,0 +1,21 @@
+package org.processmining.ericverbeek.plugins;
+
+import org.processmining.acceptingpetrinet.models.AcceptingPetriNet;
+import org.processmining.contexts.uitopia.annotations.UITopiaVariant;
+import org.processmining.ericverbeek.algorithms.PrecisionModelAlgorithm;
+import org.processmining.ericverbeek.parameters.PrecisionModelParameters;
+import org.processmining.framework.plugin.PluginContext;
+import org.processmining.framework.plugin.annotations.Plugin;
+import org.processmining.framework.plugin.annotations.PluginLevel;
+import org.processmining.framework.plugin.annotations.PluginVariant;
+
+@Plugin(name = "Create Precision Model", parameterLabels = {}, level= PluginLevel.BulletProof, returnLabels = { "Precision model" }, returnTypes = { AcceptingPetriNet.class }, userAccessible = true)
+public class PrecisionModelPlugin extends PrecisionModelAlgorithm {
+
+	@UITopiaVariant(affiliation = UITopiaVariant.EHV, author = "H.M.W. Verbeek", email = "h.m.w.verbeek@tue.nl")
+	@PluginVariant(variantLabel = "Default", requiredParameterLabels = {})
+	public AcceptingPetriNet run(PluginContext context) {
+		return apply(new PrecisionModelParameters());
+	}
+	
+}

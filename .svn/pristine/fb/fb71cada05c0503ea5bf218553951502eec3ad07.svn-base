@@ -1,0 +1,24 @@
+package org.processmining.ericverbeek.plugins;
+
+import org.processmining.contexts.uitopia.UIPluginContext;
+import org.processmining.contexts.uitopia.annotations.UITopiaVariant;
+import org.processmining.framework.boot.Boot;
+import org.processmining.framework.plugin.annotations.Plugin;
+import org.processmining.framework.plugin.annotations.PluginVariant;
+import org.processmining.framework.util.HTMLToString;
+
+@Plugin(name = "[admin] ProM user folder", parameterLabels = {}, returnLabels = { "Change logs" }, returnTypes = { HTMLToString.class }, userAccessible = true, help = "Creates the contents of the master package file, given the lists of established, runner-up, and start packages and the list of dependencies. This latter list can be generated on the ais-hudson server.")
+public class ProMUserFolderPlugin implements HTMLToString {
+
+	@UITopiaVariant(affiliation = UITopiaVariant.EHV, author = "H.M.W. Verbeek", email = "h.m.w.verbeek@tue.nl", pack = "EricVerbeek")
+	@PluginVariant(variantLabel = "Default", requiredParameterLabels = {})
+	public static HTMLToString info(final UIPluginContext context) {
+		return new ProMUserFolderPlugin();
+	}
+
+	public String toHTMLString(boolean includeHTMLTags) {
+		// TODO Auto-generated method stub
+		return "<h1>" + Boot.PROM_USER_FOLDER + "</h1>";
+	}
+
+}

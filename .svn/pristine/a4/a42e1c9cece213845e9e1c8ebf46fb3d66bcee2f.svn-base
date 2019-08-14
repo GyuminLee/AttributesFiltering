@@ -1,0 +1,58 @@
+package org.processmining.ericverbeek.plugins;
+
+import org.deckfour.xes.model.XLog;
+import org.processmining.contexts.uitopia.annotations.UITopiaVariant;
+import org.processmining.ericverbeek.algorithms.PDC2017FilterAlgorithm;
+import org.processmining.ericverbeek.models.PDC2017ConstraintModel;
+import org.processmining.ericverbeek.models.PDC2017TestModel;
+import org.processmining.framework.abstractplugins.ImportPlugin;
+import org.processmining.framework.plugin.PluginContext;
+import org.processmining.framework.plugin.annotations.Plugin;
+import org.processmining.framework.plugin.annotations.PluginVariant;
+import org.processmining.plugins.log.OpenLogFilePlugin;
+
+@Plugin(name = "PDC 2017 Test", parameterLabels = { }, returnLabels = { "Results" }, returnTypes = { PDC2017TestModel.class })
+public class PDC2017TestPlugin {
+
+	private static ImportPlugin logImporter = new OpenLogFilePlugin();
+
+	@UITopiaVariant(affiliation = UITopiaVariant.EHV, author = "H.M.W. Verbeek", email = "h.m.w.verbeek@tue.nl")
+	@PluginVariant(variantLabel = "Default", requiredParameterLabels = { })
+	public static PDC2017TestModel run(final PluginContext context) {
+		PDC2017CreateConstraintModelPlugin createPlugin = new PDC2017CreateConstraintModelPlugin();
+		PDC2017CheckConstraintModelPlugin checkPlugin = new PDC2017CheckConstraintModelPlugin();
+		PDC2017FilterAlgorithm filterAlgorithm = new PDC2017FilterAlgorithm();
+		PDC2017TestModel testModel = new PDC2017TestModel();
+		String Path = "D:\\Dropbox\\Projects\\";
+//		String Path = "C:\\Users\\eric\\Dropbox\\Projects\\";
+		try {
+			for (int i = 1; i < 11; i++) {
+				XLog marchLog = (XLog) logImporter.importFile(context,
+						Path + "PDC 2017\\log" + i + ".xes");
+				XLog aprilLog = (XLog) logImporter.importFile(context,
+						Path + "PDC 2016\\April\\test_log_april_" + i + ".xes");
+				XLog mayLog = (XLog) logImporter.importFile(context,
+						Path + "PDC 2016\\May\\test_log_may_" + i + ".xes");
+				XLog juneLog = (XLog) logImporter.importFile(context,
+						Path + "PDC 2017\\log" + i + ".xes");
+				
+				XLog filteredMarchLog = marchLog;
+//				if (i == 1 || i == 2 || i == 5 || i == 9 || i == 10) {
+//					filteredMarchLog = filterAlgorithm.apply(marchLog);
+//				}
+				PDC2017ConstraintModel model = createPlugin.run(context, filteredMarchLog);
+				context.getProvidedObjectManager().createProvidedObject("Model " + i, model, PDC2017ConstraintModel.class, context);
+				XLog classifiedAprilLog = checkPlugin.run(context, model, aprilLog);
+				XLog classifiedMayLog = checkPlugin.run(context, model, mayLog);
+				XLog classifiedJuneLog = checkPlugin.run(context, model, juneLog);
+				testModel.add(i, classifiedAprilLog, classifiedMayLog, classifiedJuneLog, model);
+			}
+			return testModel;
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+
+}
+

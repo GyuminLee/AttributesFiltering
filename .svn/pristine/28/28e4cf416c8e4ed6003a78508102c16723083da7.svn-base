@@ -1,0 +1,28 @@
+package org.processmining.ericverbeek.parameters;
+
+public class PrecisionModelParameters {
+
+	private boolean includeLongTermDependencies;
+	private boolean includeLoops;
+	
+	public PrecisionModelParameters() {
+		setIncludeLongTermDependencies(true);
+		setIncludeLoops(false);
+	}
+
+	public boolean isIncludeLongTermDependnncies() {
+		return includeLongTermDependencies;
+	}
+
+	public void setIncludeLongTermDependencies(boolean includeLongTermDependnncies) {
+		this.includeLongTermDependencies = includeLongTermDependnncies;
+	}
+
+	public boolean isIncludeLoops() {
+		return includeLoops;
+	}
+
+	public void setIncludeLoops(boolean includeLoops) {
+		this.includeLoops = includeLoops;
+	}
+}

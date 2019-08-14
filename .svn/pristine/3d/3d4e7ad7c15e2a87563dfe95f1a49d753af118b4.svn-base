@@ -1,0 +1,105 @@
+package org.processmining.ericverbeek.algorithms;
+
+import java.io.BufferedInputStream;
+import java.io.InputStream;
+import java.util.zip.GZIPInputStream;
+
+import javax.swing.JOptionPane;
+
+import org.deckfour.xes.model.XLog;
+import org.processmining.contexts.uitopia.UIPluginContext;
+import org.processmining.framework.abstractplugins.AbstractImportPlugin;
+import org.processmining.framework.plugin.PluginContext;
+import org.xesstandard.model.XesLog;
+import org.xesstandard.xml.XesXmlIssue;
+import org.xesstandard.xml.XesXmlIssueLevel;
+import org.xesstandard.xml.XesXmlParser;
+
+public abstract class XesImportAbstractAlgorithm extends AbstractImportPlugin {
+
+	private XesXmlParser parser;
+	private XesXmlIssueLevel level;
+	private boolean isCompressed;
+	private final int NOFMESSAGES = 10;
+
+	public XesImportAbstractAlgorithm(XesXmlParser parser, XesXmlIssueLevel level, boolean isCompressed) {
+		this.parser = parser;
+		this.level = level;
+		this.isCompressed = isCompressed;
+	}
+
+	protected XLog importFromStream(PluginContext context, InputStream input, String filename, long fileSizeInBytes)
+			throws Exception {
+		context.getFutureResult(0).setLabel(filename);
+		if (isCompressed) {
+			input = new GZIPInputStream(new BufferedInputStream(input));
+		}
+		try {
+			XesLog log = parser.parse(input);
+			if (parser.getErrors().isEmpty()) {
+				showWarnings(context, parser, level);
+				XesConvertToXLogAlgorithm convertor = new XesConvertToXLogAlgorithm();
+				return convertor.convertToLog(log);
+			} else {
+				showErrors(context, parser, level);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			System.err.println(e.getMessage());
+			showErrors(context, parser, level);
+		}
+		return null;
+	}
+
+	private void showErrors(PluginContext context, XesXmlParser parser, XesXmlIssueLevel level) {
+		int i = 1;
+		String message = "";
+		for (XesXmlIssue issue : parser.getErrors()) {
+			if (i < NOFMESSAGES) {
+				message += issue + "\n";
+			} else if (i == NOFMESSAGES) {
+				if (parser.getErrors().size() > NOFMESSAGES) {
+					message += "... and " + (parser.getErrors().size() - NOFMESSAGES) + " more errors\n";
+				} else {
+					message += issue + "\n";					
+				}
+			}
+			i++;
+
+		}
+		if (context instanceof UIPluginContext) {
+			if (!message.isEmpty()) {
+				JOptionPane.showMessageDialog(null, message, "Errors detected while parsing IEEE XES log",
+						JOptionPane.ERROR_MESSAGE);
+			}
+		} else {
+			System.err.println(message);
+		}
+	}
+
+	private void showWarnings(PluginContext context, XesXmlParser parser, XesXmlIssueLevel level) {
+		int i = 1;
+		String message = "";
+		for (XesXmlIssue issue : parser.getWarnings()) {
+			if (i < NOFMESSAGES) {
+				message += issue + "\n";
+			} else if (i == NOFMESSAGES) {
+				if (parser.getWarnings().size() > NOFMESSAGES) {
+					message += "... and " + (parser.getWarnings().size() - NOFMESSAGES) + " more warnings\n";
+				} else {
+					message += issue + "\n";
+				}
+			}
+			i++;
+		}
+		if (context instanceof UIPluginContext) {
+			if (!message.isEmpty()) {
+				JOptionPane.showMessageDialog(null, message, "Warnings detected while parsing IEEE XES log",
+						JOptionPane.WARNING_MESSAGE);
+			} else {
+				System.out.println(message);
+			}
+		}
+	}
+
+}

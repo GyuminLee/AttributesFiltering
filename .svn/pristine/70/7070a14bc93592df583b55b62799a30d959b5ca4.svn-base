@@ -1,0 +1,63 @@
+package org.processmining.ericverbeek.plugins;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Set;
+
+import org.processmining.contexts.uitopia.UIPluginContext;
+import org.processmining.contexts.uitopia.annotations.UITopiaVariant;
+import org.processmining.ericverbeek.algorithms.DependencyAlgorithm;
+import org.processmining.framework.plugin.annotations.Plugin;
+import org.processmining.framework.plugin.annotations.PluginVariant;
+import org.processmining.framework.util.HTMLToString;
+
+@Plugin(name = "[admin] Release notes", parameterLabels = {}, returnLabels = { "Release notes" }, returnTypes = { HTMLToString.class }, userAccessible = true, help = "Creates the contents of the master package file, given the lists of established, runner-up, and start packages and the list of dependencies. This latter list can be generated on the ais-hudson server.")
+public class ReleaseNotesPlugin extends DependencyAlgorithm {
+
+	@UITopiaVariant(affiliation = UITopiaVariant.EHV, author = "H.M.W. Verbeek", email = "h.m.w.verbeek@tue.nl", pack = "EricVerbeek")
+	@PluginVariant(variantLabel = "Default", requiredParameterLabels = {})
+	public static HTMLToString info(final UIPluginContext context) {
+		return new ReleaseNotesPlugin();
+	}
+	
+	public Comparator<String> myComparator = new Comparator<String>() {
+		public int compare(String s, String t) {
+			return s.toLowerCase().compareTo(t.toLowerCase());
+		}
+	};
+
+	public String toHTMLString(boolean includeHTMLTags) {
+		StringBuffer buffer = new StringBuffer();
+		if (includeHTMLTags) {
+			buffer.append("<html>");
+		}
+		
+		check(established.keySet(), buffer, "Established packages");
+		check(runnerUp.keySet(), buffer, "RunnerUp packages");
+		check(starter.keySet(), buffer, "Starter packages");
+
+		if (includeHTMLTags) {
+			buffer.append("</html>");
+		}
+		return buffer.toString();
+	}
+
+	public void check(Set<String> packs, StringBuffer buffer, String label) {
+		int i = 0;
+		buffer.append("<br><br>==== " + label + " ====<br>");
+		List<String> sortedPacks = new ArrayList<String>(packs);
+		Collections.sort(sortedPacks, myComparator);
+		for (String pack : sortedPacks) {
+			check(pack, buffer, i++);
+		}
+	}
+	
+	public void check(String pack, StringBuffer buffer, int i) {
+		if (i % 4 == 0) {
+			buffer.append("<br>|| ");
+		}
+		buffer.append(pack + " ||");
+	}
+}

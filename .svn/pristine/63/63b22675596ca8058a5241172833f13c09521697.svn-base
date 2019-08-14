@@ -1,0 +1,95 @@
+package org.processmining.ericverbeek.parameters;
+
+import org.deckfour.xes.factory.XFactory;
+import org.deckfour.xes.factory.XFactoryRegistry;
+
+public class PrecisionLogParameters {
+
+	private XFactory factory;
+
+	private int nofAAA;
+	private int nofBAB;
+	private int nofABB;
+	private int nofBBA;
+	
+	private int nof1;
+	private int nof2;
+	private int nof3;
+	
+	public PrecisionLogParameters() {
+		setFactory(XFactoryRegistry.instance().currentDefault());
+		setNofAAA(10);
+		setNofBAB(5);
+		setNofABB(3);
+		setNofBBA(2);
+		setNof1(2);
+		setNof2(2);
+		setNof3(1);
+	}
+	
+	public int getNofAAA() {
+		return nofAAA;
+	}
+	
+	public void setNofAAA(int nofAAA) {
+		this.nofAAA = nofAAA;
+	}
+	
+	public int getNofBAB() {
+		return nofBAB;
+	}
+	
+	public void setNofBAB(int nofBAB) {
+		this.nofBAB = nofBAB;
+	}
+	
+	public int getNofABB() {
+		return nofABB;
+	}
+	
+	public void setNofABB(int nofABB) {
+		this.nofABB = nofABB;
+	}
+	
+	public int getNofBBA() {
+		return nofBBA;
+	}
+	
+	public void setNofBBA(int nofBBA) {
+		this.nofBBA = nofBBA;
+	}
+	
+	public int getNof1() {
+		return nof1;
+	}
+	
+	public void setNof1(int nof1) {
+		this.nof1 = nof1;
+	}
+	
+	public int getNof2() {
+		return nof2;
+	}
+	
+	public void setNof2(int nof2) {
+		this.nof2 = nof2;
+	}
+	
+	public int getNof3() {
+		return nof3;
+	}
+	
+	public void setNof3(int nof3) {
+		this.nof3 = nof3;
+	}
+
+	public XFactory getFactory() {
+		return factory;
+	}
+
+	public void setFactory(XFactory factory) {
+		this.factory = factory;
+	}
+	
+	
+}

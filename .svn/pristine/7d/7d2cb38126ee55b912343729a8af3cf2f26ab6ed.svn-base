@@ -1,0 +1,42 @@
+package org.processmining.ericverbeek.algorithms;
+
+import java.util.ArrayList;
+import java.util.Collection;
+
+import org.processmining.ericverbeek.models.DeselEsparzaReduction;
+import org.processmining.ericverbeek.workspaces.DeselEsparzaReductionWorkspace;
+
+public class DeselEsparzaReduceOnceAlgorithm {
+
+	private Collection<DeselEsparzaFinderAlgorithm> reductionAlgorithms;
+
+	public DeselEsparzaReduceOnceAlgorithm() {
+		reductionAlgorithms = new ArrayList<DeselEsparzaFinderAlgorithm>();
+		reductionAlgorithms.add(new DeselEsparzaAbstractionFinderAlgorithm());
+		reductionAlgorithms.add(new DeselEsparzaTransitionFinderAlgorithm(false));
+		reductionAlgorithms.add(new DeselEsparzaTransitionFinderAlgorithm(true));
+	}
+
+	public boolean apply(DeselEsparzaReductionWorkspace ws) {
+		DeselEsparzaReduction bestReduction = null;
+		double bestScore = -1.0;
+		for (DeselEsparzaFinderAlgorithm reductionAlgorithm : reductionAlgorithms) {
+			Collection<DeselEsparzaReduction> reductions = reductionAlgorithm.apply(ws);
+			for (DeselEsparzaReduction reduction : reductions) {
+				double score = reduction.score(ws);
+				if (bestScore < score) {
+					bestScore = score;
+					bestReduction = reduction;
+				}
+			}			
+		}
+		if (bestReduction != null) {
+			System.out.println("[DeselEsparzaReduceOnceAlgorithm] " + bestReduction);
+			bestReduction.apply(ws);
+			return true;
+			
+		}
+		return false;
+	}
+
+}

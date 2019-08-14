@@ -1,0 +1,99 @@
+package org.processmining.ericverbeek.plugins;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import javax.swing.JOptionPane;
+
+import org.processmining.contexts.uitopia.UIPluginContext;
+import org.processmining.contexts.uitopia.annotations.UITopiaVariant;
+import org.processmining.ericverbeek.algorithms.DependencyAlgorithm;
+import org.processmining.framework.plugin.annotations.Plugin;
+import org.processmining.framework.plugin.annotations.PluginVariant;
+import org.processmining.framework.util.HTMLToString;
+
+@Plugin(name = "[admin] Show up/down stream", parameterLabels = { }, returnLabels = { "Up/down stream overview" }, returnTypes = { HTMLToString.class }, userAccessible = true)
+public class UpDownStreamPlugin extends DependencyAlgorithm {
+
+	public String currentPackage = "Log";
+	
+	@UITopiaVariant(affiliation = UITopiaVariant.EHV, author = "H.M.W. Verbeek", email = "h.m.w.verbeek@tue.nl", pack = "EricVerbeek")
+	@PluginVariant(variantLabel = "Default", requiredParameterLabels = { })
+	public static HTMLToString info(final UIPluginContext context) {
+		return new UpDownStreamPlugin(JOptionPane.showInputDialog("Please input a package name"));
+	}
+
+	public UpDownStreamPlugin(String pack) {
+		currentPackage = pack;
+	}
+	
+	public Comparator<String> myComparator = new Comparator<String>() {
+		public int compare(String s, String t) {
+			return s.toLowerCase().compareTo(t.toLowerCase());
+		}
+	};
+	
+	public String toHTMLString(boolean includeHTMLTags) {
+		StringBuffer buffer = new StringBuffer();
+		if (includeHTMLTags) {
+			buffer.append("<html>");
+		}
+		buffer.append("<h1>Up/down stream</h1>");
+		buffer.append(currentPackage);
+		
+		Set<String> up = new HashSet<String>();
+		up.add(currentPackage);
+		boolean stable = false;
+		while (!stable) {
+			stable = true;
+			for (Dependency dependency : dependencies) {
+				if (up.contains(dependency.requireePackage)) {
+					stable = stable && !up.add(dependency.requiredPackage);
+				}
+			}
+		}
+		Set<String> down = new HashSet<String>();
+		down.add(currentPackage);
+		stable = false;
+		while (!stable) {
+			stable = true;
+			for (Dependency dependency : dependencies) {
+				if (down.contains(dependency.requiredPackage)) {
+					stable = stable && !down.add(dependency.requireePackage);
+				}
+			}
+		}
+		Set<Integer> uniqueLevels = new HashSet<Integer>(levels.values());
+		List<Integer> sortedLevels = new ArrayList<Integer>(uniqueLevels);
+		Collections.sort(sortedLevels);
+		List<String> sortedPacks = new ArrayList<String>(levels.keySet());
+		Collections.sort(sortedPacks, myComparator);
+		for (int level : sortedLevels) {
+			buffer.append("<h2>Level " + level + " </h2><ul>");
+			for (String pack : sortedPacks) {
+				if (levels.get(pack) == level) {
+					if (up.contains(pack) || down.contains(pack)) {
+						String status = " (Unknown)";
+						if (established.keySet().contains(pack)) {
+							status = "(Established)";
+						} else if (runnerUp.keySet().contains(pack)) {
+							status = "(RunnerUp)";
+						} else if (starter.keySet().contains(pack)) {
+							status = "(Starter)";
+						}
+						buffer.append("<li>" + pack + status + "</li>");
+					}
+				}
+			}
+			buffer.append("</ul>");
+		}
+		if (includeHTMLTags) {
+			buffer.append("</html>");
+		}
+		return buffer.toString();
+	}
+}

@@ -1,0 +1,20 @@
+package org.processmining.ericverbeek.plugins;
+
+import org.processmining.acceptingpetrinet.models.AcceptingPetriNet;
+import org.processmining.contexts.uitopia.annotations.UITopiaVariant;
+import org.processmining.ericverbeek.algorithms.DeselEsparzaAbstractionFinderAlgorithm;
+import org.processmining.ericverbeek.workspaces.DeselEsparzaReductionWorkspace;
+import org.processmining.framework.plugin.PluginContext;
+import org.processmining.framework.plugin.annotations.Plugin;
+import org.processmining.framework.plugin.annotations.PluginVariant;
+
+@Plugin(name = "Find abstractions", parameterLabels = { "Accepting Petri net"}, returnLabels = { "Abstraction arcs" }, returnTypes = { String.class }, userAccessible = true)
+public class DeselEsparzaAbstractionFinderPlugin extends DeselEsparzaAbstractionFinderAlgorithm {
+
+	@UITopiaVariant(affiliation = UITopiaVariant.EHV, author = "H.M.W. Verbeek", email = "h.m.w.verbeek@tue.nl")
+	@PluginVariant(variantLabel = "Default", requiredParameterLabels = { 0 })
+	public String run(PluginContext context, AcceptingPetriNet net) {
+		DeselEsparzaReductionWorkspace ws = new DeselEsparzaReductionWorkspace(net);
+		return "<html><h1>Abstractions</h1>" + apply(ws) + "</html>";
+	}
+}

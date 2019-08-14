@@ -1,0 +1,95 @@
+package org.processmining.ericverbeek.models;
+
+import java.util.Map;
+
+import org.processmining.ericverbeek.workspaces.DeselEsparzaReductionWorkspace;
+import org.processmining.framework.util.Pair;
+import org.processmining.models.graphbased.directed.petrinet.PetrinetNode;
+
+public class DeselEsparzaHorizontalBlock implements DeselEsparzaBlock {
+
+	private final int NOFLAYOUTS = 3;
+	private DeselEsparzaBlock[] layouts;
+	private DeselEsparzaReductionWorkspace ws;
+	private double hSpace;
+
+	public DeselEsparzaHorizontalBlock(DeselEsparzaBlock leftLayout, DeselEsparzaBlock midLayout,
+			DeselEsparzaBlock rightLayout, DeselEsparzaReductionWorkspace ws) {
+		layouts = new DeselEsparzaBlock[NOFLAYOUTS];
+		layouts[0] = leftLayout;
+		layouts[1] = midLayout;
+		layouts[2] = rightLayout;
+		this.ws = ws;
+	}
+
+	public int width(double hSpace) {
+		this.hSpace = hSpace;
+		int width = 0;
+		for (int i = 0; i < NOFLAYOUTS; i++) {
+			width += layouts[i].width(hSpace);
+		}
+		width += (NOFLAYOUTS - 1) * hSpace;
+		return width;
+	}
+
+	public int[] height() {
+		int[] height = new int[2];
+		int[] heightLeft = layouts[0].height();
+		int[] heightMid = layouts[1].height();
+		int[] heightRight = layouts[2].height();
+		height[0] = Math.max(heightLeft[0], Math.max(heightMid[0], heightRight[0]));
+		height[1] = Math.max(heightLeft[1], Math.max(heightMid[1], heightRight[1]));
+		return height;
+	}
+
+	public int getNofLayers() {
+		int n = 0;
+		for (int i = 0; i < NOFLAYOUTS; i++) {
+			n += layouts[i].getNofLayers();
+		}
+		return n;
+	}
+	
+	public void doLayout(Map<PetrinetNode, Pair<Double, Double>> layout, Pair<Double, Double> position,
+			boolean isReversed, double hSpace) {
+		int[] height = height();
+		if (isReversed) {
+			for (int i = NOFLAYOUTS - 1; i >= 0; i--) {
+				int[] subHeight = layouts[i].height();
+				int offset = height[0] - subHeight[0];
+				Pair<Double, Double> offsetPosition = new Pair<Double, Double>(position.getFirst(),
+						position.getSecond() + offset);
+				layouts[i].doLayout(layout, offsetPosition, isReversed, hSpace);
+				position = new Pair<Double, Double>(position.getFirst() + layouts[i].width(hSpace) + hSpace,
+						position.getSecond());
+			}
+		} else {
+			for (int i = 0; i < NOFLAYOUTS; i++) {
+				int[] subHeight = layouts[i].height();
+				int offset = height[0] - subHeight[0];
+				Pair<Double, Double> offsetPosition = new Pair<Double, Double>(position.getFirst(),
+						position.getSecond() + offset);
+				layouts[i].doLayout(layout, offsetPosition, isReversed, hSpace);
+				position = new Pair<Double, Double>(position.getFirst() + layouts[i].width(hSpace) + hSpace,
+						position.getSecond());
+			}
+		}
+	}
+	
+	public boolean doSort(boolean isReversed) {
+		return layouts[0].doSort(isReversed) || layouts[1].doSort(isReversed) || layouts[2].doSort(isReversed);
+	}
+
+	public void doPrint(int indent) {
+		String s = "";
+		for (int i = 0; i < indent; i++) {
+			s += "\t";
+		}
+		int[] height = height();
+		s += "Horizontal [" + width(hSpace) + "," + height[0] + "+" + height[1] + "]";
+		System.out.println(s);
+		layouts[0].doPrint(indent + 1);
+		layouts[1].doPrint(indent + 1);
+		layouts[2].doPrint(indent + 1);
+	}
+}

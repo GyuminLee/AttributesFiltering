@@ -1,0 +1,30 @@
+package org.processmining.ericverbeek.algorithms;
+
+import java.io.File;
+import java.io.IOException;
+
+import org.deckfour.xes.model.XLog;
+import org.processmining.framework.plugin.PluginContext;
+import org.processmining.log.utils.XUtils;
+import org.xesstandard.model.XesLog;
+
+public abstract class XesExportAbstractAlgorithm {
+	
+	public void export(PluginContext context, XLog log, File file) throws IOException {
+		XesConvertFromXLogAlgorithm convertor = new XesConvertFromXLogAlgorithm();
+		if (context == null) {
+			doExport(convertor.convertFrom(log), file);
+		} else {
+			String originalName = XUtils.renameLogWithProMLabel(context, log);
+			try {
+				doExport(convertor.convertFrom(log), file);
+			} finally {
+				// Re-assign the original name to avoid changing the XLog object as ProMs connection framework might depend on it
+				XUtils.assignConceptName(log, originalName);
+			}
+		}
+	}
+
+	public abstract void doExport(XesLog log, File file) throws IOException;
+
+}

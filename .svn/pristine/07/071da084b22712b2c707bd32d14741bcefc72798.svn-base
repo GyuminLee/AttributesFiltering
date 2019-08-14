@@ -1,0 +1,163 @@
+package org.processmining.ericverbeek.models;
+
+import java.util.HashSet;
+import java.util.Set;
+
+import org.processmining.ericverbeek.workspaces.DeselEsparzaReductionWorkspace;
+import org.processmining.models.graphbased.directed.petrinet.PetrinetEdge;
+import org.processmining.models.graphbased.directed.petrinet.elements.Arc;
+import org.processmining.models.graphbased.directed.petrinet.elements.Place;
+import org.processmining.models.graphbased.directed.petrinet.elements.Transition;
+import org.processmining.models.semantics.petrinet.Marking;
+
+public class DeselEsparzaAbstractionReduction implements DeselEsparzaReduction {
+
+	/*
+	 * The place reduced.
+	 */
+	private Place place;
+	/*
+	 * The transition reduced.
+	 */
+	private Transition transition;
+	/*
+	 * The postset of the transition reduced.
+	 */
+	private Set<Place> places;
+	/*
+	 * The preset of the place reduced.
+	 */
+	private Set<Transition> transitions;
+
+	public Place getPlace() {
+		return place;
+	}
+
+	public void setPlace(Place place) {
+		this.place = place;
+	}
+
+	public Transition getTransition() {
+		return transition;
+	}
+
+	public void setTransition(Transition transition) {
+		this.transition = transition;
+	}
+
+	public Set<Place> getPlaces() {
+		return places;
+	}
+
+	public void setPlaces(Set<Place> places) {
+		this.places = places;
+	}
+
+	public Set<Transition> getTransitions() {
+		return transitions;
+	}
+
+	public void setTransitions(Set<Transition> transitions) {
+		this.transitions = transitions;
+	}
+
+	public void apply(DeselEsparzaReductionWorkspace ws) {
+		Set<Arc> arcsToReduce = new HashSet<Arc>();
+		for (PetrinetEdge<?, ?> edge : ws.workNet.getNet().getEdges()) {
+			if (edge instanceof Arc) {
+				Arc arc = (Arc) edge;
+				if (arc.getSource() == place || arc.getTarget() == place) {
+					arcsToReduce.add(arc);
+				}
+				if (arc.getSource() == transition || arc.getTarget() == transition) {
+					arcsToReduce.add(arc);
+				}
+			}
+		}
+		for (Arc arc : arcsToReduce) {
+			ws.workNet.getNet().removeEdge(arc);
+		}
+		ws.workNet.getNet().removePlace(place);
+		ws.workNet.getNet().removeTransition(transition);
+		for (Transition transition : transitions) {
+			for (Place place : places) {
+				ws.workNet.getNet().addArc(transition, place);
+			}
+		}
+		Marking initialMarking = new Marking(ws.workNet.getInitialMarking());
+		drain(initialMarking, place);
+		ws.workNet.setInitialMarking(initialMarking);
+		Set<Marking> finalMarkings = new HashSet<Marking>();
+		for (Marking marking : ws.workNet.getFinalMarkings()) {
+			Marking finalMarking = new Marking(marking);
+			drain(finalMarking, place);
+			finalMarkings.add(finalMarking);
+		}
+		ws.workNet.setFinalMarkings(finalMarkings);
+		// Update layout
+		Transition bestTransition = null;
+		Place bestPlace = null;
+		if (transitions.size() == 1 && ws.postsets.get(transitions.iterator().next()).size() == 1) {
+			bestTransition = transitions.iterator().next();
+		} else if (places.size() == 1 && ws.presets.get(places.iterator().next()).size() == 1) {
+			bestPlace = places.iterator().next();
+		} else {
+			int bestValue = Integer.MAX_VALUE;
+			for (Transition transition : transitions) {
+				if (ws.postsets.get(transition).size() < bestValue) {
+					bestValue = ws.postsets.get(transition).size();
+					bestTransition = transition;
+				}
+			}
+			for (Place place : places) {
+				if (ws.presets.get(place).size() < bestValue) {
+					bestValue = ws.presets.get(place).size();
+					bestTransition = null;
+					bestPlace = place;
+				}
+			}
+		}
+		if (bestTransition != null) {
+			DeselEsparzaBlock block = new DeselEsparzaHorizontalBlock(ws.layoutMap.get(bestTransition),
+					ws.layoutMap.get(place), ws.layoutMap.get(transition), ws);
+			ws.layoutMap.put(bestTransition, block);
+		} else if (bestPlace != null) {
+			DeselEsparzaBlock block = new DeselEsparzaHorizontalBlock(ws.layoutMap.get(place),
+					ws.layoutMap.get(transition), ws.layoutMap.get(bestPlace), ws);
+			ws.layoutMap.put(bestPlace, block);
+		}
+		ws.update();
+	}
+
+	private void drain(Marking marking, Place place) {
+		while (marking.occurrences(place) > 0) {
+			marking.remove(place);
+		}
+	}
+
+	public String toString() {
+		return "Abstraction(" + transitions + "," + place + "," + transition + "," + places + ")";
+	}
+
+	public double score(DeselEsparzaReductionWorkspace ws) {
+		double transitionScore = transitions.size();
+		if (transitions.isEmpty()) {
+			return 0.0;
+		}
+//		for (Transition transition : transitions) {
+//			transitionScore += Math.abs(ws.presets.get(transition).size() - 1);
+//			transitionScore += Math.abs(ws.postsets.get(transition).size() - 1);
+//		}
+//		double placeScore = places.size();
+//		for (Place place : places) {
+//			placeScore += Math.abs(ws.presets.get(place).size() - 1);
+//			placeScore += Math.abs(ws.postsets.get(place).size() - 1);
+//		}
+		return 0.99 / transitions.size();
+//		return 0.99 / Math.min(transitionScore, placeScore);
+	}
+
+	public boolean hasOptimalScore(DeselEsparzaReductionWorkspace ws) {
+		return score(ws) == 0.99;
+	}
+}

@@ -1,0 +1,54 @@
+package org.processmining.ericverbeek.algorithms;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
+
+import org.processmining.ericverbeek.models.DeselEsparzaAbstractionReduction;
+import org.processmining.ericverbeek.models.DeselEsparzaReduction;
+import org.processmining.ericverbeek.workspaces.DeselEsparzaReductionWorkspace;
+import org.processmining.models.graphbased.directed.petrinet.PetrinetNode;
+import org.processmining.models.graphbased.directed.petrinet.elements.Arc;
+import org.processmining.models.graphbased.directed.petrinet.elements.Place;
+import org.processmining.models.graphbased.directed.petrinet.elements.Transition;
+
+public class DeselEsparzaAbstractionFinderAlgorithm implements DeselEsparzaFinderAlgorithm {
+
+	public Collection<DeselEsparzaReduction> apply(DeselEsparzaReductionWorkspace ws) {
+		Collection<DeselEsparzaReduction> reductions = new ArrayList<DeselEsparzaReduction>();
+		for (Arc arc : ws.ptArcs) {
+			Place place = (Place) arc.getSource();
+			Transition transition = (Transition) arc.getTarget();
+			if (/*!ws.presets.get(place).isEmpty() &&*/ ws.postsets.get(place).size() == 1
+					&& !ws.postsets.get(transition).isEmpty() && ws.presets.get(transition).size() == 1) {
+				Set<PetrinetNode> postPresets = new HashSet<PetrinetNode>();
+				for (PetrinetNode node : ws.presets.get(place)) {
+					postPresets.addAll(ws.postsets.get(node));
+				}
+				postPresets.retainAll(ws.postsets.get(transition));
+				if (postPresets.isEmpty()) {
+					DeselEsparzaAbstractionReduction reduction = new DeselEsparzaAbstractionReduction();
+					reduction.setPlace((Place) arc.getSource());
+					reduction.setTransition((Transition) arc.getTarget());
+					Set<Transition> transitions = new HashSet<Transition>();
+					for (PetrinetNode node : ws.presets.get(place)) {
+						transitions.add((Transition) node);
+					}
+					Set<Place> places = new HashSet<Place>();
+					for (PetrinetNode node : ws.postsets.get(transition)) {
+						places.add((Place) node);
+					}
+					reduction.setTransitions(transitions);
+					reduction.setPlaces(places);
+					reductions.add(reduction);
+					if (reduction.hasOptimalScore(ws)) {
+						return reductions;
+					}
+				}
+			}
+		}
+		return reductions;
+	}
+	
+}

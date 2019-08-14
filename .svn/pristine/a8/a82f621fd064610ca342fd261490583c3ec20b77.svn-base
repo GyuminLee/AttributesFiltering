@@ -1,0 +1,197 @@
+package org.processmining.ericverbeek.algorithms;
+
+import org.processmining.acceptingpetrinet.models.AcceptingPetriNet;
+import org.processmining.acceptingpetrinet.models.impl.AcceptingPetriNetFactory;
+import org.processmining.ericverbeek.parameters.PrecisionModelParameters;
+import org.processmining.models.graphbased.directed.petrinet.Petrinet;
+import org.processmining.models.graphbased.directed.petrinet.elements.Place;
+import org.processmining.models.graphbased.directed.petrinet.elements.Transition;
+import org.processmining.models.graphbased.directed.petrinet.impl.PetrinetFactory;
+import org.processmining.models.semantics.petrinet.Marking;
+
+public class PrecisionModelAlgorithm {
+
+	public AcceptingPetriNet apply(PrecisionModelParameters parameters) {
+		return applyB(parameters);
+	}
+
+	public AcceptingPetriNet applyA(PrecisionModelParameters parameters) {
+		Petrinet net = PetrinetFactory.newPetrinet("Precision model");
+
+		Place i = net.addPlace("i");
+		Place o = net.addPlace("o");
+		Place p1 = net.addPlace("p1");
+		Place p2 = net.addPlace("p2");
+		Place p3 = net.addPlace("p3");
+		Place p4 = net.addPlace("p4");
+		Place p5 = net.addPlace("p5");
+		Place p6 = net.addPlace("p6");
+		Place p7 = net.addPlace("p7");
+		Place p8 = net.addPlace("p8");
+
+		Transition tA1 = net.addTransition("A");
+		Transition tA2 = net.addTransition("A");
+		Transition tA3 = net.addTransition("A");
+		Transition tA4 = net.addTransition("A");
+		Transition tA5 = net.addTransition("A");
+
+		Transition tB1 = net.addTransition("B");
+		Transition tB2 = net.addTransition("B");
+		Transition tB3 = net.addTransition("B");
+		Transition tB4 = net.addTransition("B");
+		Transition tB5 = net.addTransition("B");
+
+		net.addArc(i, tA1);
+		net.addArc(i, tB1);
+		net.addArc(i, tA2);
+		net.addArc(i, tB2);
+		net.addArc(tA4, o);
+		net.addArc(tB4, o);
+		net.addArc(tA5, o);
+		net.addArc(tB5, o);
+
+		if (parameters.isIncludeLongTermDependnncies()) {
+			net.addArc(tA1, p1);
+			net.addArc(p1, tA4);
+			net.addArc(tB1, p4);
+			net.addArc(p4, tB4);
+			net.addArc(tA2, p5);
+			net.addArc(p5, tB5);
+			net.addArc(tB2, p8);
+			net.addArc(p8, tA5);
+		}
+
+		net.addArc(tA1, p2);
+		net.addArc(tB1, p2);
+		net.addArc(p3, tA4);
+		net.addArc(p3, tB4);
+		net.addArc(tA2, p6);
+		net.addArc(tB2, p6);
+		net.addArc(p7, tA5);
+		net.addArc(p7, tB5);
+
+		if (parameters.isIncludeLoops()) {
+			Transition rA3 = net.addTransition("redoA3");
+			rA3.setInvisible(true);
+			Transition rB3 = net.addTransition("redoB3");
+			rB3.setInvisible(true);
+
+			net.addArc(p2, tA3);
+			net.addArc(tA3, p3);
+			net.addArc(p3, rA3);
+			net.addArc(rA3, p2);
+			net.addArc(p6, tB3);
+			net.addArc(tB3, p7);
+			net.addArc(p7, rB3);
+			net.addArc(rB3, p6);
+		} else {
+			Place p2a = net.addPlace("p2a");
+			Place p2b = net.addPlace("p2b");
+			Place p6a = net.addPlace("p6a");
+			Place p6b = net.addPlace("p6b");
+			Transition tA6 = net.addTransition("A");
+			Transition tA7 = net.addTransition("A");
+			Transition tB6 = net.addTransition("B");
+			Transition tB7 = net.addTransition("B");
+			Transition sA6 = net.addTransition("skipA6");
+			sA6.setInvisible(true);
+			Transition sA7 = net.addTransition("skipA7");
+			sA7.setInvisible(true);
+			Transition sB6 = net.addTransition("skipB6");
+			sB6.setInvisible(true);
+			Transition sB7 = net.addTransition("skipB7");
+			sB7.setInvisible(true);
+			
+			net.addArc(p2, tA3);
+			net.addArc(tA3, p2a);
+			net.addArc(p2a, tA6);
+			net.addArc(tA6, p2b);
+			net.addArc(p2a, sA6);
+			net.addArc(sA6, p2b);
+			net.addArc(p2b, tA7);
+			net.addArc(tA7, p3);
+			net.addArc(p2b, sA7);
+			net.addArc(sA7, p3);
+			
+			net.addArc(p6, tB3);
+			net.addArc(tB3, p6a);
+			net.addArc(p6a, tB6);
+			net.addArc(tB6, p6b);
+			net.addArc(p6a, sB6);
+			net.addArc(sB6, p6b);
+			net.addArc(p6b, tB7);
+			net.addArc(tB7, p7);
+			net.addArc(p6b, sB7);
+			net.addArc(sB7, p7);
+		}
+
+		Marking iMarking = new Marking();
+		iMarking.add(i);
+		Marking oMarking = new Marking();
+		oMarking.add(o);
+
+		return AcceptingPetriNetFactory.createAcceptingPetriNet(net, iMarking, oMarking);
+	}
+
+	public AcceptingPetriNet applyB(PrecisionModelParameters parameters) {
+		Petrinet net = PetrinetFactory.newPetrinet("Precision model");
+
+		Place i = net.addPlace("i");
+		Place o = net.addPlace("o");
+		Place p = net.addPlace("p");
+		Place q = net.addPlace("q");
+
+		Transition tA = net.addTransition("A");
+		Transition tB = net.addTransition("B");
+		Transition tC = net.addTransition("C");
+		Transition rB = net.addTransition("redoB");
+		rB.setInvisible(true);
+
+		net.addArc(i, tA);
+		net.addArc(tA, p);
+		net.addArc(p, tB);
+		net.addArc(tB, q);
+		net.addArc(q, rB);
+		net.addArc(rB, p);
+		net.addArc(q, tC);
+		net.addArc(tC, o);
+		
+		Marking iMarking = new Marking();
+		iMarking.add(i);
+		Marking oMarking = new Marking();
+		oMarking.add(o);
+
+		return AcceptingPetriNetFactory.createAcceptingPetriNet(net, iMarking, oMarking);
+	}
+
+	public AcceptingPetriNet applyC(PrecisionModelParameters parameters) {
+		Petrinet net = PetrinetFactory.newPetrinet("Precision model");
+
+		Place i = net.addPlace("i");
+		Place o = net.addPlace("o");
+		Place p = net.addPlace("p");
+		Place q = net.addPlace("q");
+
+		Transition tA = net.addTransition("A");
+		Transition tB = net.addTransition("B");
+		Transition tC = net.addTransition("C");
+		Transition rB = net.addTransition("B");
+
+		net.addArc(i, tA);
+		net.addArc(tA, p);
+		net.addArc(p, tB);
+		net.addArc(tB, q);
+		net.addArc(p, rB);
+		net.addArc(rB, p);
+		net.addArc(q, tC);
+		net.addArc(tC, o);
+		
+		Marking iMarking = new Marking();
+		iMarking.add(i);
+		Marking oMarking = new Marking();
+		oMarking.add(o);
+
+		return AcceptingPetriNetFactory.createAcceptingPetriNet(net, iMarking, oMarking);
+	}
+
+}

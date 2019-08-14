@@ -1,0 +1,18 @@
+package org.processmining.ericverbeek.plugins;
+
+import org.deckfour.xes.model.XLog;
+import org.processmining.contexts.uitopia.annotations.UITopiaVariant;
+import org.processmining.ericverbeek.algorithms.PDC2017PairAlgorithm;
+import org.processmining.framework.plugin.PluginContext;
+import org.processmining.framework.plugin.annotations.Plugin;
+import org.processmining.framework.plugin.annotations.PluginVariant;
+
+@Plugin(name = "PDC 2017 Log Pairer", parameterLabels = { "Event log"}, returnLabels = { "Paired log" }, returnTypes = { XLog.class }, userAccessible = true, help = "PDC 2017 Plug-in")
+public class PDC2017PairPlugin extends PDC2017PairAlgorithm {
+
+	@UITopiaVariant(affiliation = UITopiaVariant.EHV, author = "H.M.W. Verbeek", email = "h.m.w.verbeek@tue.nl")
+	@PluginVariant(variantLabel = "Default", requiredParameterLabels = { 0 })
+	public XLog run(PluginContext context, XLog log) {
+		return apply(log);
+	}
+}

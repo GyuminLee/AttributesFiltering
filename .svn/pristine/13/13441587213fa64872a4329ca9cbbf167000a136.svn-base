@@ -1,0 +1,265 @@
+package org.processmining.ericverbeek.workspaces;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import org.processmining.acceptingpetrinet.models.AcceptingPetriNet;
+import org.processmining.acceptingpetrinet.models.impl.AcceptingPetriNetFactory;
+import org.processmining.ericverbeek.models.DeselEsparzaBlock;
+import org.processmining.ericverbeek.models.DeselEsparzaNodeBlock;
+import org.processmining.framework.util.Pair;
+import org.processmining.models.connections.GraphLayoutConnection;
+import org.processmining.models.graphbased.directed.petrinet.Petrinet;
+import org.processmining.models.graphbased.directed.petrinet.PetrinetEdge;
+import org.processmining.models.graphbased.directed.petrinet.PetrinetNode;
+import org.processmining.models.graphbased.directed.petrinet.elements.Arc;
+import org.processmining.models.graphbased.directed.petrinet.elements.Place;
+import org.processmining.models.graphbased.directed.petrinet.elements.Transition;
+import org.processmining.models.graphbased.directed.petrinet.impl.PetrinetFactory;
+import org.processmining.models.semantics.petrinet.Marking;
+
+public class DeselEsparzaReductionWorkspace {
+
+	public final AcceptingPetriNet net;
+	public AcceptingPetriNet workNet;
+	public Map<Place, Place> placeMap;
+	//	public Map<Transition, Transition> transitionMap;
+	public Map<Transition, Place> transitionMap;
+	public Map<Place, PetrinetNode> reversePlaceMap;
+	public Map<Transition, Arc> reverseTransitionMap;
+
+	public int nofPlaces;
+	public int nofTransitions;
+
+	public Map<Place, Integer> pMap;
+	public Map<Transition, Integer> tMap;
+	public Map<Pair<Place, Place>, Integer> mMap;
+
+	public int[][] incidenceMatrix;
+
+	public Map<PetrinetNode, List<PetrinetNode>> presets;
+	public Map<PetrinetNode, List<PetrinetNode>> postsets;
+	public List<Place> places;
+	public List<Transition> transitions;
+	public List<Arc> arcs;
+	public List<Arc> ptArcs;
+
+	public Map<PetrinetNode, DeselEsparzaBlock> layoutMap;
+
+	public GraphLayoutConnection layoutConnection;
+	public final double SCALE = 1000.0;
+	public final double HSPACE = 10000.0;
+	public final double VSPACE = 20000.0;
+	public final double OFFSET = 50.0;
+
+	private Comparator<PetrinetNode> nodeComparator = new Comparator<PetrinetNode>() {
+		public int compare(PetrinetNode o1, PetrinetNode o2) {
+			// TODO Auto-generated method stub
+			return o1.getLabel().compareTo(o2.getLabel());
+		}
+	};
+
+	private Comparator<PetrinetEdge<?, ?>> edgeComparator = new Comparator<PetrinetEdge<?, ?>>() {
+		public int compare(PetrinetEdge<?, ?> o1, PetrinetEdge<?, ?> o2) {
+			int c = o1.getSource().getLabel().compareTo(o2.getSource().getLabel());
+			if (c == 0) {
+				c = o1.getTarget().getLabel().compareTo(o2.getTarget().getLabel());
+			}
+			return c;
+		}
+	};
+
+	public DeselEsparzaReductionWorkspace(AcceptingPetriNet net) {
+		this.net = cloneNet(net);
+		workNet = cloneWorkNet(this.net);
+		update();
+		layoutMap = new HashMap<PetrinetNode, DeselEsparzaBlock>();
+		for (PetrinetNode node : workNet.getNet().getNodes()) {
+			layoutMap.put(node, new DeselEsparzaNodeBlock(node, this));
+		}
+	}
+
+	private AcceptingPetriNet cloneNet(AcceptingPetriNet net) {
+		Map<Place, Place> placeMap = new HashMap<Place, Place>();
+		Map<Transition, Transition> transitionMap = new HashMap<Transition, Transition>();
+		Petrinet reducedPN = cloneNet(net.getNet(), placeMap, transitionMap);
+		Marking initialMarking = apply(net.getInitialMarking(), placeMap);
+		Set<Marking> finalMarkings = apply(net.getFinalMarkings(), placeMap);
+		return AcceptingPetriNetFactory.createAcceptingPetriNet(reducedPN, initialMarking, finalMarkings);
+	}
+
+	private AcceptingPetriNet cloneWorkNet(AcceptingPetriNet net) {
+		placeMap = new HashMap<Place, Place>();
+		//		transitionMap = new HashMap<Transition, Transition>();
+		transitionMap = new HashMap<Transition, Place>();
+		reversePlaceMap = new HashMap<Place, PetrinetNode>();
+		reverseTransitionMap = new HashMap<Transition, Arc>();
+		Petrinet reducedPN = cloneWorkNet(net.getNet());
+		Marking initialMarking = apply(net.getInitialMarking(), placeMap);
+		Set<Marking> finalMarkings = apply(net.getFinalMarkings(), placeMap);
+		return AcceptingPetriNetFactory.createAcceptingPetriNet(reducedPN, initialMarking, finalMarkings);
+	}
+
+	private Petrinet cloneNet(Petrinet net, Map<Place, Place> placeMap, Map<Transition, Transition> transitionMap) {
+		Petrinet clonedNet = PetrinetFactory.newPetrinet(net.getLabel());
+		for (Place place : net.getPlaces()) {
+			Place clonedPlace = clonedNet.addPlace(place.getLabel());
+			placeMap.put(place, clonedPlace);
+		}
+		for (Transition transition : net.getTransitions()) {
+			Transition clonedTransition = clonedNet.addTransition(transition.getLabel());
+			clonedTransition.setInvisible(transition.isInvisible());
+			transitionMap.put(transition, clonedTransition);
+		}
+		for (PetrinetEdge<?, ?> edge : net.getEdges()) {
+			if (edge instanceof Arc) {
+				Arc arc = (Arc) edge;
+				if (placeMap.containsKey(arc.getSource())) {
+					clonedNet.addArc(placeMap.get(arc.getSource()), transitionMap.get(arc.getTarget()), arc.getWeight());
+				} else {
+					clonedNet.addArc(transitionMap.get(arc.getSource()), placeMap.get(arc.getTarget()), arc.getWeight());
+				}
+			}
+		}
+		return clonedNet;
+	}
+
+	private Petrinet cloneWorkNet(Petrinet net) {
+		Petrinet clonedNet = PetrinetFactory.newPetrinet(net.getLabel());
+		for (Place place : net.getPlaces()) {
+			Place clonedPlace = clonedNet.addPlace(place.getLabel());
+			placeMap.put(place, clonedPlace);
+			reversePlaceMap.put(clonedPlace,  place);
+		}
+		for (Transition transition : net.getTransitions()) {
+			Place clonedPlace = clonedNet.addPlace(transition.getLabel());
+			transitionMap.put(transition, clonedPlace);
+			reversePlaceMap.put(clonedPlace, transition);
+		}
+		for (PetrinetEdge<?, ?> edge : net.getEdges()) {
+			if (edge instanceof Arc) {
+				Arc arc = (Arc) edge;
+				Transition transition = clonedNet.addTransition(arc.getSource().getLabel() + " -> " + arc.getTarget().getLabel());
+				if (placeMap.containsKey(arc.getSource())) {
+					clonedNet.addArc(placeMap.get(arc.getSource()), transition, arc.getWeight());
+					clonedNet.addArc(transition, transitionMap.get(arc.getTarget()), arc.getWeight());
+				} else {
+					clonedNet.addArc(transitionMap.get(arc.getSource()), transition, arc.getWeight());
+					clonedNet.addArc(transition, placeMap.get(arc.getTarget()), arc.getWeight());
+				}
+				reverseTransitionMap.put(transition,  arc);
+			}
+		}
+		return clonedNet;
+	}
+
+	private Marking apply(Marking marking, Map<Place, Place> map) {
+		Marking appliedMarking = new Marking();
+		for (Place place : marking.baseSet()) {
+			appliedMarking.add(map.get(place), marking.occurrences(place));
+		}
+		return appliedMarking;
+	}
+
+	private Set<Marking> apply(Set<Marking> markings, Map<Place, Place> map) {
+		Set<Marking> appliedMarkings = new HashSet<Marking>();
+		for (Marking marking : markings) {
+			appliedMarkings.add(apply(marking, map));
+		}
+		return appliedMarkings;
+	}
+
+	public void update() {
+
+		presets = new HashMap<PetrinetNode, List<PetrinetNode>>();
+		postsets = new HashMap<PetrinetNode, List<PetrinetNode>>();
+		places = new ArrayList<Place>();
+		transitions = new ArrayList<Transition>();
+		arcs = new ArrayList<Arc>();
+		ptArcs = new ArrayList<Arc>();
+
+		for (PetrinetNode node : workNet.getNet().getNodes()) {
+			presets.put(node, new ArrayList<PetrinetNode>());
+			postsets.put(node, new ArrayList<PetrinetNode>());
+		}
+
+		for (PetrinetEdge<?, ?> edge : workNet.getNet().getEdges()) {
+			if (edge instanceof Arc) {
+				Arc arc = (Arc) edge;
+				arcs.add(arc);
+				if (arc.getSource() instanceof Place) {
+					ptArcs.add(arc);
+				}
+				presets.get(arc.getTarget()).add(arc.getSource());
+				postsets.get(arc.getSource()).add(arc.getTarget());
+			}
+		}
+
+		for (PetrinetNode node : workNet.getNet().getNodes()) {
+			Collections.sort(presets.get(node), nodeComparator);
+			Collections.sort(postsets.get(node), nodeComparator);
+		}
+
+		pMap = new HashMap<Place, Integer>();
+		nofPlaces = 0;
+		for (Place place : workNet.getNet().getPlaces()) {
+			places.add(place);
+			pMap.put(place, nofPlaces);
+			nofPlaces++;
+		}
+		tMap = new HashMap<Transition, Integer>();
+		nofTransitions = 0;
+		for (Transition transition : workNet.getNet().getTransitions()) {
+			transitions.add(transition);
+			tMap.put(transition, nofTransitions);
+			nofTransitions++;
+		}
+		Set<Place> initialPlaces = new HashSet<Place>(workNet.getInitialMarking().baseSet());
+		Set<Place> finalPlaces = new HashSet<Place>();
+		for (Marking finalMarking : workNet.getFinalMarkings()) {
+			finalPlaces.addAll(finalMarking.baseSet());
+		}
+		mMap = new HashMap<Pair<Place, Place>, Integer>();
+		for (Place finalPlace : finalPlaces) {
+			for (Place initialPlace : initialPlaces) {
+				mMap.put(new Pair<Place, Place>(finalPlace, initialPlace), nofTransitions);
+				nofTransitions++;
+			}
+		}
+
+		incidenceMatrix = new int[nofPlaces][nofTransitions];
+
+		for (int p = 0; p < nofPlaces; p++) {
+			for (int t = 0; t < nofTransitions; t++) {
+				incidenceMatrix[p][t] = 0;
+			}
+		}
+
+		for (Arc arc : arcs) {
+			if (arc.getSource() instanceof Place) {
+				incidenceMatrix[pMap.get(arc.getSource())][tMap.get(arc.getTarget())] -= arc.getWeight();
+			} else {
+				incidenceMatrix[pMap.get(arc.getTarget())][tMap.get(arc.getSource())] += arc.getWeight();
+			}
+		}
+
+		for (Place finalPlace : finalPlaces) {
+			for (Place initialPlace : initialPlaces) {
+				Pair<Place, Place> pair = new Pair<Place, Place>(finalPlace, initialPlace);
+				incidenceMatrix[pMap.get(finalPlace)][mMap.get(pair)] -= 1;
+				incidenceMatrix[pMap.get(initialPlace)][mMap.get(pair)] += 1;
+			}
+		}
+
+		Collections.sort(places, nodeComparator);
+		Collections.sort(transitions, nodeComparator);
+		Collections.sort(arcs, edgeComparator);
+		Collections.sort(ptArcs, edgeComparator);
+	}
+}

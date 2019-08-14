@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="src" output="tests/bin-test" path="tests/src-test"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="con" path="org.apache.ivyde.eclipse.cpcontainer.IVYDE_CONTAINER/?project=EricVerbeek&amp;ivyXmlPath=ivy.xml&amp;confs=*&amp;ivySettingsPath=ivysettings.xml&amp;loadSettingsOnDemand=false&amp;ivyUserDir=&amp;propertyFiles="/>
+	<classpathentry kind="lib" path="lib/antlr-runtime-3.4.jar"/>
+	<classpathentry kind="lib" path="lib/jna-4.1.0.jar"/>
+	<classpathentry kind="lib" path="lib/jna-platform-4.1.0.jar"/>
+	<classpathentry kind="lib" path="lib/jsch.agentproxy.connector-factory-0.0.7.jar"/>
+	<classpathentry kind="lib" path="lib/jsch.agentproxy.core-0.0.7.jar"/>
+	<classpathentry kind="lib" path="lib/jsch.agentproxy.pageant-0.0.7.jar"/>
+	<classpathentry kind="lib" path="lib/jsch.agentproxy.sshagent-0.0.7.jar"/>
+	<classpathentry kind="lib" path="lib/jsch.agentproxy.svnkit-trilead-ssh2-0.0.7.jar"/>
+	<classpathentry kind="lib" path="lib/jsch.agentproxy.usocket-jna-0.0.7.jar"/>
+	<classpathentry kind="lib" path="lib/jsch.agentproxy.usocket-nc-0.0.7.jar"/>
+	<classpathentry kind="lib" path="lib/sequence-library-1.0.3.jar"/>
+	<classpathentry kind="lib" path="lib/sqljet-1.1.10.jar"/>
+	<classpathentry kind="lib" path="lib/svnkit-1.8.9.jar"/>
+	<classpathentry kind="lib" path="lib/svnkit-cli-1.8.9.jar"/>
+	<classpathentry kind="lib" path="lib/svnkit-javahl16-1.8.9.jar"/>
+	<classpathentry kind="lib" path="lib/trilead-ssh2-1.0.0-build217.jar"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>

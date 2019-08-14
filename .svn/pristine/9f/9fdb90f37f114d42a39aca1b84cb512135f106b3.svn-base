@@ -1,0 +1,40 @@
+package org.processmining.ericverbeek.models;
+
+import org.processmining.framework.util.Pair;
+
+public class ActivityInvariant extends Pair<ActivitySequence,ActivitySequence> {
+
+	public ActivityInvariant(ActivitySequence first, ActivitySequence second) {
+		super(first, second);
+	}
+
+	public boolean matches(ActivityInvariant invariant) {
+		
+		ActivitySequence first = new ActivitySequence();
+		first.addAll(this.getFirst());
+		first.retainAll(invariant.getSecond());
+		
+		ActivitySequence second = new ActivitySequence();
+		second.addAll(invariant.getFirst());
+		second.retainAll(this.getSecond());
+
+		return first.isEmpty() && second.isEmpty();
+	}
+	
+	public ActivityInvariant subtract(ActivityInvariant invariant) {
+		
+		ActivitySequence first = new ActivitySequence();
+		first.addAll(this.getFirst());
+		first.addAll(invariant.getSecond());
+		first.removeAll(invariant.getFirst());
+		first.removeAll(this.getSecond());
+		
+		ActivitySequence second = new ActivitySequence();
+		second.addAll(invariant.getFirst());
+		second.addAll(this.getSecond());
+		second.removeAll(this.getFirst());
+		second.removeAll(invariant.getSecond());
+		
+		return new ActivityInvariant(first, second);
+	}
+}

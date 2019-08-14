@@ -1,0 +1,19 @@
+package org.processmining.ericverbeek.plugins;
+
+import org.deckfour.xes.model.XLog;
+import org.processmining.contexts.uitopia.annotations.UITopiaVariant;
+import org.processmining.ericverbeek.algorithms.PDC2017CreateConstraintModelAlgorithm;
+import org.processmining.ericverbeek.models.PDC2017ConstraintModel;
+import org.processmining.framework.plugin.PluginContext;
+import org.processmining.framework.plugin.annotations.Plugin;
+import org.processmining.framework.plugin.annotations.PluginVariant;
+
+@Plugin(name = "PDC 2017 Create Constraint Model", parameterLabels = { "Event log"}, returnLabels = { "PDC 2017 Constraint Model" }, returnTypes = { PDC2017ConstraintModel.class }, userAccessible = true, help = "PDC 2017 Plug-in")
+public class PDC2017CreateConstraintModelPlugin extends PDC2017CreateConstraintModelAlgorithm {
+
+	@UITopiaVariant(affiliation = UITopiaVariant.EHV, author = "H.M.W. Verbeek", email = "h.m.w.verbeek@tue.nl")
+	@PluginVariant(variantLabel = "Default", requiredParameterLabels = { 0 })
+	public PDC2017ConstraintModel run(PluginContext context, XLog log) {
+		return apply(log);
+	}
+}

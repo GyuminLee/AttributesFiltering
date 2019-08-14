@@ -1,0 +1,43 @@
+package org.processmining.ericverbeek.models;
+
+import java.util.HashSet;
+
+import org.deckfour.xes.classification.XEventClassifier;
+import org.deckfour.xes.model.XEvent;
+import org.deckfour.xes.model.XLog;
+import org.deckfour.xes.model.XTrace;
+
+public class ActivityInvariants extends HashSet<ActivityInvariant> {
+
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = -7461085859175006324L;
+
+	public ActivityInvariants(XLog log, XEventClassifier classifier) {
+		for (XTrace trace : log) {
+			ActivitySequence sequence = new ActivitySequence();
+			for (XEvent event : trace) {
+				sequence.add(new Activity(classifier.getClassIdentity(event)));
+			}
+			this.add(new ActivityInvariant(sequence, new ActivitySequence()));
+		}
+	}
+	
+	public void resolve() {
+		boolean change = true;
+		while (change) {
+			change = false;
+			for (ActivityInvariant invariant1 : this) {
+				for (ActivityInvariant invariant2 : this) {
+					if (invariant1.equals(invariant2)) {
+						continue;
+					}
+					if (invariant1.matches(invariant2)) {
+						ActivityInvariant invariant3 = invariant1.subtract(invariant2);
+					}
+				}
+			}
+		}
+	}
+}

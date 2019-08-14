@@ -1,0 +1,338 @@
+package org.processmining.ericverbeek.algorithms;
+
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+
+import org.deckfour.xes.classification.XEventClassifier;
+import org.deckfour.xes.extension.XExtension;
+import org.deckfour.xes.extension.std.XConceptExtension;
+import org.deckfour.xes.extension.std.XCostExtension;
+import org.deckfour.xes.extension.std.XIdentityExtension;
+import org.deckfour.xes.extension.std.XLifecycleExtension;
+import org.deckfour.xes.extension.std.XOrganizationalExtension;
+import org.deckfour.xes.extension.std.XSemanticExtension;
+import org.deckfour.xes.extension.std.XTimeExtension;
+import org.deckfour.xes.model.XAttribute;
+import org.deckfour.xes.model.XAttributeBoolean;
+import org.deckfour.xes.model.XAttributeContinuous;
+import org.deckfour.xes.model.XAttributeDiscrete;
+import org.deckfour.xes.model.XAttributeID;
+import org.deckfour.xes.model.XAttributeList;
+import org.deckfour.xes.model.XAttributeLiteral;
+import org.deckfour.xes.model.XAttributeTimestamp;
+import org.deckfour.xes.model.XEvent;
+import org.deckfour.xes.model.XLog;
+import org.deckfour.xes.model.XTrace;
+import org.xesstandard.extensions.XesConceptExtension;
+import org.xesstandard.extensions.XesCostExtension;
+import org.xesstandard.extensions.XesIdExtension;
+import org.xesstandard.extensions.XesLifecycleExtension;
+import org.xesstandard.extensions.XesOrganizationalExtension;
+import org.xesstandard.extensions.XesSemanticExtension;
+import org.xesstandard.extensions.XesTimeExtension;
+import org.xesstandard.factory.XesFactory;
+import org.xesstandard.factory.impl.XesFactoryImpl;
+import org.xesstandard.model.XesAttribute;
+import org.xesstandard.model.XesClassifier;
+import org.xesstandard.model.XesEvent;
+import org.xesstandard.model.XesExtension;
+import org.xesstandard.model.XesLog;
+import org.xesstandard.model.XesTrace;
+import org.xesstandard.model.attributes.XesBooleanAttribute;
+import org.xesstandard.model.attributes.XesDateTimeAttribute;
+import org.xesstandard.model.attributes.XesIdAttribute;
+import org.xesstandard.model.attributes.XesIntegerNumberAttribute;
+import org.xesstandard.model.attributes.XesListAttribute;
+import org.xesstandard.model.attributes.XesRealNumberAttribute;
+import org.xesstandard.model.attributes.XesStringAttribute;
+import org.xesstandard.xml.XesXmlTags;
+
+/**
+ * Convert an Xlog to a XesLog.
+ * 
+ * @author HVERBEEK
+ *
+ */
+public class XesConvertFromXLogAlgorithm {
+
+	/**
+	 * Factory to create Xes objects.
+	 */
+	private XesFactory factory;
+
+	/**
+	 * Boolean that tracks whether some attributes have been nested.
+	 */
+	private boolean hasNestedAttributes;
+
+	/**
+	 * Map containing all attribute keys. To prevent unnecessary duplication.
+	 */
+	private Map<String, String> keyMap;
+
+	/**
+	 * Set containing all classified keys. Used to prevent unnecessary
+	 * duplication of Strings, Dates, and UUIDs.
+	 */
+	private Set<String> classifiedKeys;
+	
+	/**
+	 * Map containing String values for attributes with classified keys.
+	 * Prevents unnecessary duplication.
+	 */
+	private Map<String, String> stringMap;
+	
+	/**
+	 * Map containing Date values for attributes with classified keys.
+	 * Prevents unnecessary duplication.
+	 */
+	private Map<Date, Date> dateMap;
+	
+	/**
+	 * Map containing UUID values for attributes with classified keys.
+	 * Prevents unnecessary duplication.
+	 */
+	private Map<UUID, UUID> idMap;
+
+	/**
+	 * @param log The given log.
+	 * @return The Xes log that results from converting the given log.
+	 */
+	public XesLog convertFrom(XLog log) {
+		
+		// Initialize.
+		factory = new XesFactoryImpl();
+		hasNestedAttributes = false;
+		keyMap = new HashMap<String, String>();
+		classifiedKeys = new HashSet<String>();
+		stringMap = new HashMap<String, String>();
+		dateMap = new HashMap<Date, Date>();
+		idMap = new HashMap<UUID, UUID>();
+
+		// Create a Xes log.
+		XesLog convertedLog = factory.createLog();
+		// Set the version number.
+		convertedLog.setVersion(XesXmlTags.VERSIONIEEE18492016);
+		// Convert the extensions.
+		for (XExtension extension : log.getExtensions()) {
+			convertedLog.addExtension(convert(extension));
+		}
+		// Convert the global trace attributes.
+		for (XAttribute attribute : log.getGlobalTraceAttributes()) {
+			convertedLog.addGlobalTraceAttribute(convert(attribute));
+		}
+		// Convert the global event attributes.
+		for (XAttribute attribute : log.getGlobalEventAttributes()) {
+			convertedLog.addGlobalEventAttribute(convert(attribute));
+		}
+		// No need to convert trace classifiers.
+		// Convert the event classifiers. 
+		for (XEventClassifier classifier : log.getClassifiers()) {
+			convertedLog.addEventClassifier(convert(classifier));
+		}
+		// Convert the log attributes.
+		for (XAttribute attribute : log.getAttributes().values()) {
+			convertedLog.addAttribute(convert(attribute));
+		}
+		// Convert the traces.
+		for (XTrace trace : log) {
+			convertedLog.addTrace(convert(trace));
+		}
+		// No need to convert events.
+		// Checked nested attributes.
+		if (hasNestedAttributes) {
+			// Has nested attributes. Declare feature.
+			convertedLog.addFeature(XesXmlTags.NESTEDATTRIBUTES);
+		}
+		// Return converted log.
+		return convertedLog;
+	}
+
+	/*
+	 * Convert an extension.
+	 */
+	private XesExtension convert(XExtension extension) {
+		if (extension.equals(XConceptExtension.instance())) {
+			return XesConceptExtension.instance();
+		} else if (extension.equals(XLifecycleExtension.instance())) {
+			return XesLifecycleExtension.instance();
+		} else if (extension.equals(XOrganizationalExtension.instance())) {
+			return XesOrganizationalExtension.instance();
+		} else if (extension.equals(XTimeExtension.instance())) {
+			return XesTimeExtension.instance();
+		} else if (extension.equals(XIdentityExtension.instance())) {
+			return XesIdExtension.instance();
+		} else if (extension.equals(XSemanticExtension.instance())) {
+			return XesSemanticExtension.instance();
+		} else if (extension.equals(XCostExtension.instance())) {
+			return XesCostExtension.instance();
+		}
+
+		XesExtension convertedExtension = factory.createExtension();
+		convertedExtension.setName(extension.getName());
+		convertedExtension.setPrefix(extension.getPrefix());
+		convertedExtension.setURI(extension.getUri());
+		for (XAttribute attribute : extension.getLogAttributes()) {
+			convertedExtension.addLogAttribute(convert(attribute));
+		}
+		for (XAttribute attribute : extension.getTraceAttributes()) {
+			convertedExtension.addTraceAttribute(convert(attribute));
+		}
+		for (XAttribute attribute : extension.getEventAttributes()) {
+			convertedExtension.addEventAttribute(convert(attribute));
+		}
+		for (XAttribute attribute : extension.getMetaAttributes()) {
+			convertedExtension.addMetaAttribute(convert(attribute));
+		}
+		return convertedExtension;
+	}
+
+	/*
+	 * Convert a classifier.
+	 */
+	private XesClassifier convert(XEventClassifier classifier) {
+		XesClassifier convertedClassifier = factory.createClassifier();
+		convertedClassifier.setName(classifier.name());
+		for (String key : classifier.getDefiningAttributeKeys()) {
+			classifiedKeys.add(key);
+			convertedClassifier.addKey(key);
+		}
+		return convertedClassifier;
+
+	}
+
+	/*
+	 * Convert a trace.
+	 */
+	private XesTrace convert(XTrace trace) {
+		XesTrace convertedTrace = factory.createTrace();
+		for (XAttribute attribute : trace.getAttributes().values()) {
+			convertedTrace.addAttribute(convert(attribute));
+		}
+		for (XEvent event : trace) {
+			convertedTrace.addEvent(convert(event));
+		}
+		return convertedTrace;
+	}
+
+	/*
+	 * Convert an event.
+	 */
+	private XesEvent convert(XEvent event) {
+		XesEvent convertedEvent = factory.createEvent();
+		for (XAttribute attribute : event.getAttributes().values()) {
+			convertedEvent.addAttribute(convert(attribute));
+		}
+		return convertedEvent;
+	}
+
+	/*
+	 * Convert an attribute.
+	 */
+	private XesAttribute convert(XAttribute attribute) {
+		XesAttribute convertedAttribute = null;
+		if (attribute instanceof XAttributeLiteral) {
+			XesStringAttribute stringAttribute = factory.createStringAttribute();
+			stringAttribute.setKey(getMappedKey(attribute.getKey()));
+			String value = ((XAttributeLiteral) attribute).getValue();
+			value = (classifiedKeys.contains(attribute.getKey()) ? getMappedValue(value) : value);
+			stringAttribute.setValue(value);
+			convertedAttribute = stringAttribute;
+		} else if (attribute instanceof XAttributeDiscrete) {
+			XesIntegerNumberAttribute intAttribute = factory.createIntegerNumberAttribute();
+			intAttribute.setKey(getMappedKey(attribute.getKey()));
+			intAttribute.setValue(((XAttributeDiscrete) attribute).getValue());
+			convertedAttribute = intAttribute;
+		} else if (attribute instanceof XAttributeContinuous) {
+			XesRealNumberAttribute realAttribute = factory.createRealNumberAttribute();
+			realAttribute.setKey(getMappedKey(attribute.getKey()));
+			realAttribute.setValue(((XAttributeContinuous) attribute).getValue());
+			convertedAttribute = realAttribute;
+		} else if (attribute instanceof XAttributeBoolean) {
+			XesBooleanAttribute boolAttribute = factory.createBooleanAttribute();
+			boolAttribute.setKey(getMappedKey(attribute.getKey()));
+			boolAttribute.setValue(((XAttributeBoolean) attribute).getValue());
+			convertedAttribute = boolAttribute;
+		} else if (attribute instanceof XAttributeTimestamp) {
+			XesDateTimeAttribute dateAttribute = factory.createDateTimeAttribute();
+			dateAttribute.setKey(getMappedKey(attribute.getKey()));
+			Date value = ((XAttributeTimestamp) attribute).getValue();
+			value = (classifiedKeys.contains(attribute.getKey()) ? getMappedValue(value) : value);
+			dateAttribute.setValue(value);
+			convertedAttribute = dateAttribute;
+		} else if (attribute instanceof XAttributeID) {
+			XesIdAttribute idAttribute = factory.createIdAttribute();
+			idAttribute.setKey(getMappedKey(attribute.getKey()));
+			UUID value = UUID.fromString(((XAttributeID) attribute).getValue().toString());
+			value = (classifiedKeys.contains(attribute.getKey()) ? getMappedValue(value) : value);
+			idAttribute.setValue(value);
+			convertedAttribute = idAttribute;
+		} else if (attribute instanceof XAttributeList) {
+			XesListAttribute listAttribute = factory.createListAttribute();
+			listAttribute.setKey(getMappedKey(attribute.getKey()));
+			for (XAttribute valueAttribute : ((XAttributeList) attribute).getCollection()) {
+				listAttribute.addValue(convert(valueAttribute));
+			}
+			convertedAttribute = listAttribute;
+		}
+		if (convertedAttribute != null) {
+			for (XAttribute metaAttribute : attribute.getAttributes().values()) {
+				hasNestedAttributes = true;
+				convertedAttribute.addAttribute(convert(metaAttribute));
+			}
+		}
+		return convertedAttribute;
+	}
+
+	/*
+	 * Gets the mapped attribute key.
+	 */
+	private String getMappedKey(String key) {
+		String mappedKey = keyMap.get(key);
+		if (mappedKey == null) {
+			keyMap.put(key, key);
+			mappedKey = key;
+		}
+		return mappedKey;
+	}
+
+	/*
+	 * Gets the mapped String value.
+	 */
+	private String getMappedValue(String value) {
+		String mappedValue = stringMap.get(value);
+		if (mappedValue == null) {
+			stringMap.put(value, value);
+			mappedValue = value;
+		}
+		return mappedValue;
+	}
+
+	/*
+	 * Gets the mapped Date value.
+	 */
+	private Date getMappedValue(Date value) {
+		Date mappedValue = dateMap.get(value);
+		if (mappedValue == null) {
+			dateMap.put(value, value);
+			mappedValue = value;
+		}
+		return mappedValue;
+	}
+
+	/*
+	 * Gets the mapped UUID value.
+	 */
+	private UUID getMappedValue(UUID value) {
+		UUID mappedValue = idMap.get(value);
+		if (mappedValue == null) {
+			idMap.put(value, value);
+			mappedValue = value;
+		}
+		return mappedValue;
+	}
+}

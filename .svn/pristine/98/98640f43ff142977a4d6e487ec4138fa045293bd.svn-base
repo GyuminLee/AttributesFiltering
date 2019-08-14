@@ -1,0 +1,12 @@
+package org.processmining.ericverbeek.models;
+
+import org.processmining.ericverbeek.workspaces.DeselEsparzaReductionWorkspace;
+
+public interface DeselEsparzaReduction {
+
+	public void apply(DeselEsparzaReductionWorkspace ws);
+	
+	public double score(DeselEsparzaReductionWorkspace ws);
+
+	public boolean hasOptimalScore(DeselEsparzaReductionWorkspace ws);
+}

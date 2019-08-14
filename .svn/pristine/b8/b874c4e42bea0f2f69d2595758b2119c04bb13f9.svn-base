@@ -1,0 +1,200 @@
+package org.processmining.ericverbeek.plugins;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import org.processmining.contexts.uitopia.UIPluginContext;
+import org.processmining.contexts.uitopia.annotations.UITopiaVariant;
+import org.processmining.ericverbeek.algorithms.DependencyAlgorithm;
+import org.processmining.framework.plugin.annotations.Plugin;
+import org.processmining.framework.plugin.annotations.PluginVariant;
+import org.processmining.framework.util.HTMLToString;
+import org.tigris.subversion.javahl.ClientException;
+import org.tigris.subversion.javahl.SVNClient;
+import org.tigris.subversion.javahl.Status;
+
+
+@Plugin(name = "[admin] Change logs", parameterLabels = {}, returnLabels = { "Change logs" }, returnTypes = { HTMLToString.class }, userAccessible = true, help = "Creates the contents of the master package file, given the lists of established, runner-up, and start packages and the list of dependencies. This latter list can be generated on the ais-hudson server.")
+public class ChangeLogsPlugin extends DependencyAlgorithm{
+
+	int oldRev = 24628;
+	String rel = "6";
+	String oldRel = "5.1a";
+
+	@UITopiaVariant(affiliation = UITopiaVariant.EHV, author = "H.M.W. Verbeek", email = "h.m.w.verbeek@tue.nl", pack = "EricVerbeek")
+	@PluginVariant(variantLabel = "Default", requiredParameterLabels = {})
+	public static HTMLToString info(final UIPluginContext context) {
+		return new ChangeLogsPlugin();
+	}
+
+	/*
+	 * Compare packages on their lower-case names, like Hudson does. Keeps them
+	 * in-line.
+	 */
+	public Comparator<String> myComparator = new Comparator<String>() {
+		public int compare(String s, String t) {
+			return s.toLowerCase().compareTo(t.toLowerCase());
+		}
+	};
+
+	public String toHTMLString(boolean includeHTMLTags) {
+		StringBuffer buffer = new StringBuffer();
+		if (includeHTMLTags) {
+			buffer.append("<html>");
+		}
+		Set<Integer> uniqueLevels = new HashSet<Integer>(levels.values());
+		List<Integer> sortedLevels = new ArrayList<Integer>(uniqueLevels);
+		Collections.sort(sortedLevels);
+		List<String> sortedPacks = new ArrayList<String>(levels.keySet());
+		Collections.sort(sortedPacks, myComparator);
+		/*
+		 * Export the established packages first, the runner-up packages second,
+		 * and the starter packages third.
+		 */
+		
+		long revNumber = getRevisionNumber("D:/Repositories/ProM6/Releases/Framework");
+		buffer.append("= ProM 6." + rel + " Change logs =<br>");
+		buffer.append("<br>|| Revision || " + revNumber + " ||<br>");
+		buffer.append("|| Date || " + Calendar.getInstance().getTime() + " ||<br>");
+		buffer.append("<br>== Core components ==<br>");
+		buffer.append("<br>Note that [wiki:ProM6" + oldRel.replaceAll("\\.", "") + " ProM 6." + oldRel + "] corresponded to Revision " + oldRev + ".<br>");
+		buffer.append("<br>|| '''Component''' || '''Responsible''' || '''Version''' || '''Revision''' || '''Change log''' ||<br>");
+		
+//		long revNumber = getRevisionNumber("/workspace/ProM 6.5");
+		buffer.append("|| Framework || " + ERIC + " || 6." + rel + " || " + revNumber + " || [" + oldRev + ":" + revNumber + "/Framework/trunk] ||<br>");
+
+//		revNumber = getRevisionNumber("/workspace/UITopia");
+		revNumber = getRevisionNumber("D:/Repositories/ProM6/Releases/Framework/lib/UITopia.jar");
+		buffer.append("|| UITopia || " + ERIC + " || 6." + rel + " || " + revNumber + " || [" + oldRev + ":" + revNumber + "/UITopia/trunk] ||<br>");
+
+//		revNumber = getRevisionNumber("/workspace/XESame");
+		revNumber = getRevisionNumber("D:/Repositories/ProM6/Releases/XESame");
+		buffer.append("|| XESame || " + JOOS + " || 1." + rel + " || " + revNumber + " || [" + oldRev + ":" + revNumber + "/XESame/trunk] ||<br>");
+
+		buffer.append("<br>== Packages ==<br><br>");
+		buffer.append("|| '''Package''' || '''Status''' || '''Version''' || '''Author''' || '''Revision''' || '''Change log''' ||<br>");
+		for (int level : sortedLevels) {
+			for (String pack : sortedPacks) {
+				if (levels.get(pack) == level) {
+					if (established.keySet().contains(pack)) {
+						check(pack, buffer, established, "Established", level);
+					}
+				}
+			}
+		}
+		for (int level : sortedLevels) {
+			for (String pack : sortedPacks) {
+				if (levels.get(pack) == level) {
+					if (runnerUp.keySet().contains(pack)) {
+						check(pack, buffer, runnerUp, "RunnerUp", level);
+					}
+				}
+			}
+		}
+		for (int level : sortedLevels) {
+			for (String pack : sortedPacks) {
+				if (levels.get(pack) == level) {
+					if (starter.keySet().contains(pack)) {
+						check(pack, buffer, starter, "Starter", level);
+					}
+				}
+			}
+		}
+		buffer.append("<br>");
+		if (includeHTMLTags) {
+			buffer.append("</html>");
+		}
+		return buffer.toString();
+	}
+
+	public void check(String pack, StringBuffer buffer, Map<String, String> authors, String label, int level) {
+		String packURL = "http://www.promtools.org/prom6/packages/" + pack + "/packages.xml";
+		String version ="";
+		InputStream is = null;
+		try {
+			URL url = new URL(packURL);
+			is = url.openStream();
+			BufferedReader dis = new BufferedReader(new InputStreamReader(is));
+			String s;
+			while ((s = dis.readLine()) != null) {
+//				System.out.println("Checking line: " + s);						
+				int left = s.indexOf("<dependency ");
+				if (left >= 0) {
+					left = s.indexOf("name=\"", left);
+					if (left >= 0) {
+						left += 6;
+						int right = s.indexOf("\"", left);
+						String ss = s.substring(left, right);
+//						System.out.println("Checking dependency: " + ss);						
+						if (!established.keySet().contains(ss) && !runnerUp.keySet().contains(ss) && !starter.keySet().contains(ss)) {
+							System.err.println("Unknown dependency: " + s);						
+						}
+					}
+				}
+				left = s.indexOf("<package ");
+				if (left >= 0) {
+					left = s.indexOf("version=\"", left);
+					if (left >= 0) {
+						left += 9;
+						int right = s.indexOf("\"", left);
+						version = s.substring(left, right);						
+					}
+				}
+			}
+		} catch (MalformedURLException mue) {
+			System.err.println("Ouch - a MalformedURLException happened.");
+			mue.printStackTrace();
+			buffer.append("&nbsp;&nbsp;&nbsp;&nbsp;&lt;!-- malformed URL repository url=\"" + packURL
+					+ "\" /--&gt;<br>");
+		} catch (IOException ioe) {
+			System.err.println("Oops - an IOException happened.");
+			ioe.printStackTrace();
+			buffer.append("&nbsp;&nbsp;&nbsp;&nbsp;&lt;!-- I/O exception repository url=\"" + packURL
+					+ "\" /--&gt;<br>");
+		} finally {
+			try {
+				is.close();
+			} catch (Exception e) {
+			}
+		}
+		
+//		long revNumber = getRevisionNumber("/workspace/" + pack + "/latestrelease");
+		long revNumber = getRevisionNumber("D:/Repositories/ProM6/Releases/Packages/" + pack);
+		if (revNumber > oldRev) {
+			buffer.append("|| " + pack + " || " + label + " " + level + " || " + version + " || " +  authors.get(pack) + " || " + revNumber + " || [" + oldRev + ":" + revNumber + "/Packages/" + pack + "/Trunk] ||<br>");
+		} else if (revNumber > 0) {
+			buffer.append("|| " + pack + " || " + label + " " + level + " || " + version + " || " +  authors.get(pack) + " || " + revNumber + " ||  ||<br>");
+		} else {
+			buffer.append("|| " + pack + " || " + label + " " + level + " || " + version + " || " +  authors.get(pack) + " ||  ||  ||<br>");
+		}
+	}
+	
+	private long getRevisionNumber(String path) {
+		SVNClient svnClient = new SVNClient();
+		Status[] status;
+		long revNumber = -1;
+		try {
+			System.out.println("Getting revision number for " + path);
+			status = svnClient.status(path, true, true, true);
+			for(Status stat : status) {
+				revNumber = (revNumber < stat.getLastChangedRevisionNumber()) ? stat.getLastChangedRevisionNumber() : revNumber;
+			}
+		} catch (ClientException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return revNumber;
+	}
+}

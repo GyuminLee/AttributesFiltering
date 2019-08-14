@@ -1,0 +1,321 @@
+package org.processmining.ericverbeek.algorithms;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import org.deckfour.xes.extension.std.XConceptExtension;
+import org.deckfour.xes.factory.XFactoryRegistry;
+import org.deckfour.xes.model.XEvent;
+import org.deckfour.xes.model.XLog;
+import org.deckfour.xes.model.XTrace;
+import org.processmining.ericverbeek.models.PDC2017ConstraintModel;
+import org.processmining.ericverbeek.models.PDC2017CountModel;
+import org.processmining.ericverbeek.models.PDC2017Relation;
+import org.processmining.log.models.EventLogArray;
+import org.processmining.log.models.impl.EventLogArrayFactory;
+
+public class PDC2017CreateConstraintModelAlgorithm {
+
+	public PDC2017ConstraintModel apply(XLog log) {
+		PDC2017CountModel countModel0 = count(log);
+		//		countModel0.print("Count model");
+		PDC2017CountModel countModel1 = correct(countModel0);
+		//		countModel1.print("Par model");
+		PDC2017CountModel countModel2 = correct(log, countModel1);
+		PDC2017CountModel countModel = correct2(countModel2);
+		countModel = countModel0;
+		countModel.print("Count model");
+		EventLogArray logs = split(log);
+		Collection<PDC2017CountModel> counts = createCounts(logs);
+		PDC2017ConstraintModel constraintModel = new PDC2017ConstraintModel(countModel, countModel2);
+		addSameCounts(counts, constraintModel);
+		addPlaceCounts(countModel, counts, constraintModel);
+		constraintModel.cleanPlaceCounts();
+		createCausalDependencies(log, countModel, constraintModel);
+		return constraintModel;
+	}
+
+	public PDC2017CountModel count(XLog log) {
+		PDC2017CountModel model = new PDC2017CountModel();
+
+		for (XTrace trace : log) {
+			String activity;
+			String prevActivity = PDC2017CountModel.STARTEVENT;
+			model.inc(prevActivity);
+			for (XEvent event : trace) {
+				activity = XConceptExtension.instance().extractName(event);
+				model.inc(activity);
+				model.inc(prevActivity, activity);
+				prevActivity = activity;
+			}
+			activity = PDC2017CountModel.ENDEVENT;
+			model.inc(activity);
+			model.inc(prevActivity, activity);
+		}
+		return model;
+	}
+
+	public PDC2017CountModel correct(XLog log, PDC2017CountModel model) {
+		PDC2017CountModel correctedModel = new PDC2017CountModel();
+		for (XTrace trace : log) {
+			String activity;
+			List<String> prevActivities = new ArrayList<String>();
+			prevActivities.add(PDC2017CountModel.STARTEVENT);
+			correctedModel.inc(PDC2017CountModel.STARTEVENT);
+			for (XEvent event : trace) {
+				activity = XConceptExtension.instance().extractName(event);
+				correctedModel.inc(activity);
+				int n = prevActivities.size();
+				String prevActivity = prevActivities.get(--n);
+				while (n > 0 && prevActivity != null && model.get(prevActivity, activity) == 0) {
+					prevActivity = prevActivities.get(--n);
+				}
+				if (prevActivity != null) {
+					correctedModel.inc(prevActivity, activity);
+				}
+				prevActivity = activity;
+				prevActivities.add(prevActivity);
+			}
+			activity = PDC2017CountModel.ENDEVENT;
+			correctedModel.inc(activity);
+			int n = prevActivities.size();
+			String prevActivity = prevActivities.get(--n);
+			while (n > 0 && prevActivity != null && model.get(prevActivity, activity) == 0) {
+				prevActivity = prevActivities.get(--n);
+			}
+			if (prevActivity != null) {
+				correctedModel.inc(prevActivity, activity);
+			}
+		}
+		return correctedModel;
+	}
+
+	private PDC2017CountModel correct(PDC2017CountModel model) {
+		PDC2017CountModel correctedModel = new PDC2017CountModel();
+
+		for (String fromActivity : model.getActivities()) {
+			correctedModel.add(fromActivity, model.get(fromActivity));
+			for (String toActivity : model.getActivities()) {
+				if (model.get(fromActivity, toActivity) > 0 && model.get(toActivity, fromActivity) == 0) {
+					correctedModel.add(fromActivity, toActivity, model.get(fromActivity, toActivity));
+				}
+			}
+		}
+		return correctedModel;
+	}
+
+	private PDC2017CountModel correct2(PDC2017CountModel model) {
+		PDC2017CountModel correctedModel = new PDC2017CountModel();
+
+		for (String fromActivity : model.getActivities()) {
+			correctedModel.add(fromActivity, model.get(fromActivity));
+			for (String toActivity : model.getActivities()) {
+				int threshold = Math.min(model.get(fromActivity), model.get(toActivity)) / 5;
+				if (model.get(fromActivity, toActivity) > threshold) {
+					correctedModel.add(fromActivity, toActivity, model.get(fromActivity, toActivity));
+				}
+			}
+		}
+		return correctedModel;
+	}
+
+	private EventLogArray split(XLog log) {
+		int N = log.size();
+		EventLogArray logs = EventLogArrayFactory.createEventLogArray();
+		for (int i = 0; i < N; i++) {
+			logs.addLog(i, XFactoryRegistry.instance().currentDefault().createLog());
+		}
+		int i = 0;
+		for (XTrace trace : log) {
+			logs.getLog(i).add(trace);
+			i++;
+			if (i == N) {
+				i = 0;
+			}
+		}
+		return logs;
+	}
+
+	private Collection<PDC2017CountModel> createCounts(EventLogArray logs) {
+		Collection<PDC2017CountModel> models = new ArrayList<PDC2017CountModel>();
+		for (int i = 0; i < logs.getSize(); i++) {
+			XLog log = logs.getLog(i);
+			models.add(count(log));
+		}
+		return models;
+	}
+
+	private void addSameCounts(Collection<PDC2017CountModel> countModels, PDC2017ConstraintModel constraintModel) {
+		Map<List<Integer>, Set<String>> map = new HashMap<List<Integer>, Set<String>>();
+		Set<String> activities = new HashSet<String>();
+		for (PDC2017CountModel countModel : countModels) {
+			activities.addAll(countModel.getActivities());
+		}
+		for (String activity : activities) {
+			List<Integer> count = new ArrayList<Integer>();
+			for (PDC2017CountModel countModel : countModels) {
+				count.add(countModel.get(activity));
+			}
+			if (map.containsKey(count)) {
+				map.get(count).add(activity);
+			} else {
+				Set<String> newCount = new HashSet<String>();
+				newCount.add(activity);
+				map.put(count, newCount);
+			}
+		}
+		for (Set<String> sameCount : map.values()) {
+			constraintModel.addSameCount(sameCount);
+		}
+	}
+
+	private void addPlaceCounts(PDC2017CountModel countModel, Collection<PDC2017CountModel> countModels,
+			PDC2017ConstraintModel constraintModel) {
+		Collection<String> activities = countModel.getActivities();
+		for (String activity : activities) {
+			Collection<String> fromActivities = new HashSet<String>();
+			fromActivities.add(activity);
+			Collection<String> toActivities = new HashSet<String>();
+			toActivities.addAll(countModel.getTo(activity));
+			addPlaceCount(fromActivities, toActivities, countModels, constraintModel);
+		}
+		for (String activity : activities) {
+			Collection<String> fromActivities = new HashSet<String>();
+			fromActivities.addAll(countModel.getFrom(activity));
+			Collection<String> toActivities = new HashSet<String>();
+			toActivities.add(activity);
+			addPlaceCount(fromActivities, toActivities, countModels, constraintModel);
+		}
+	}
+
+	private void addPlaceCount(Collection<String> fromActivities, Collection<String> toActivities,
+			Collection<PDC2017CountModel> countModels, PDC2017ConstraintModel constraintModel) {
+		Set<PDC2017Relation> relations = new HashSet<PDC2017Relation>(Arrays.asList(PDC2017Relation.values()));
+		for (PDC2017CountModel subCountModel : countModels) {
+			int fromCounter = 0;
+			int toCounter = 0;
+			Collection<String> seenFromActivities = new HashSet<String>();
+			Collection<String> seenToActivities = new HashSet<String>();
+			for (String fromActivity : fromActivities) {
+				if (!seenFromActivities.contains(fromActivity)) {
+					fromCounter += subCountModel.get(fromActivity);
+					seenFromActivities.addAll(constraintModel.getSameCounts(fromActivity));
+				}
+			}
+			for (String toActivity : toActivities) {
+				if (!seenToActivities.contains(toActivity)) {
+					toCounter += subCountModel.get(toActivity);
+					seenToActivities.addAll(constraintModel.getSameCounts(toActivity));
+				}
+			}
+
+			//					System.out.println("[PDC2017Algorithm] " + fromCounter + " and " + toCounter);
+			if (fromCounter != toCounter) {
+				relations.remove(PDC2017Relation.optEQ);
+			}
+			if (fromCounter != 1 + toCounter) {
+				relations.remove(PDC2017Relation.optP1);
+			}
+			if (fromCounter + 1 != toCounter) {
+				relations.remove(PDC2017Relation.optM1);
+			}
+			if (fromCounter != toCounter && fromCounter != 1 + toCounter) {
+				relations.remove(PDC2017Relation.optIP1);
+			}
+			if (fromCounter != toCounter && fromCounter + 1 != toCounter) {
+				relations.remove(PDC2017Relation.optIM1);
+			}
+			if (fromCounter != 2 + toCounter) {
+				relations.remove(PDC2017Relation.optP2);
+			}
+			if (fromCounter + 2 != toCounter) {
+				relations.remove(PDC2017Relation.optM2);
+			}
+			if (fromCounter < toCounter) {
+				relations.remove(PDC2017Relation.optGE);
+			}
+			if (fromCounter > toCounter) {
+				relations.remove(PDC2017Relation.optLE);
+			}
+			if (fromCounter <= toCounter) {
+				relations.remove(PDC2017Relation.optGT);
+			}
+			if (fromCounter >= toCounter) {
+				relations.remove(PDC2017Relation.optLT);
+			}
+		}
+		if (relations.contains(PDC2017Relation.optEQ)) {
+			relations.remove(PDC2017Relation.optGE);
+			relations.remove(PDC2017Relation.optLE);
+			relations.remove(PDC2017Relation.optIP1);
+			relations.remove(PDC2017Relation.optIM1);
+		}
+		if (relations.contains(PDC2017Relation.optP1)) {
+			relations.remove(PDC2017Relation.optGE);
+			relations.remove(PDC2017Relation.optGT);
+			relations.remove(PDC2017Relation.optIP1);
+		}
+		if (relations.contains(PDC2017Relation.optM1)) {
+			relations.remove(PDC2017Relation.optLE);
+			relations.remove(PDC2017Relation.optLT);
+			relations.remove(PDC2017Relation.optIM1);
+		}
+		if (relations.contains(PDC2017Relation.optIP1)) {
+			relations.remove(PDC2017Relation.optGE);
+			relations.remove(PDC2017Relation.optGT);
+		}
+		if (relations.contains(PDC2017Relation.optIM1)) {
+			relations.remove(PDC2017Relation.optLE);
+			relations.remove(PDC2017Relation.optLT);
+		}
+		if (relations.contains(PDC2017Relation.optP2)) {
+			relations.remove(PDC2017Relation.optGE);
+			relations.remove(PDC2017Relation.optGT);
+		}
+		if (relations.contains(PDC2017Relation.optM2)) {
+			relations.remove(PDC2017Relation.optLE);
+			relations.remove(PDC2017Relation.optLT);
+		}
+		if (relations.contains(PDC2017Relation.optLT)) {
+			relations.remove(PDC2017Relation.optLE);
+		}
+		if (relations.contains(PDC2017Relation.optGT)) {
+			relations.remove(PDC2017Relation.optGE);
+		}
+		if (relations.size() > 1) {
+			System.err.println("[PDC2017Algorithm] " + relations);
+		}
+		if (relations.size() == 1) {
+			constraintModel.addPlaceCount(fromActivities, toActivities, relations.iterator().next());
+		}
+
+	}
+
+	private void createCausalDependencies(XLog log, PDC2017CountModel model, PDC2017ConstraintModel constraintModel) {
+		for (XTrace trace : log) {
+			List<String> postset = new ArrayList<String>();
+			postset.add(PDC2017CountModel.STARTEVENT);
+			for (XEvent event : trace) {
+				postset.add(XConceptExtension.instance().extractName(event));
+			}
+			postset.add(PDC2017CountModel.ENDEVENT);
+			List<String> preset = new ArrayList<String>();
+			String prevActivity = null;
+			while (!postset.isEmpty()) {
+				if (prevActivity != null) {
+					preset.add(prevActivity);
+				}
+				String activity = postset.remove(0);
+				constraintModel.addPrePost(activity, preset, postset);
+				prevActivity = activity;
+			}
+		}
+		constraintModel.cleanPrePost();
+	}
+}

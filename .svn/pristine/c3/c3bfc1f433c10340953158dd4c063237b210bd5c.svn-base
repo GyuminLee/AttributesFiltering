@@ -1,0 +1,87 @@
+package org.processmining.ericverbeek.algorithms;
+
+import org.deckfour.xes.classification.XEventAttributeClassifier;
+import org.deckfour.xes.extension.std.XConceptExtension;
+import org.deckfour.xes.model.XEvent;
+import org.deckfour.xes.model.XLog;
+import org.deckfour.xes.model.XTrace;
+import org.processmining.ericverbeek.parameters.PrecisionLogParameters;
+
+public class PrecisionLogAlgorithm {
+
+	public XLog apply(PrecisionLogParameters parameters) {
+		return applyB(parameters);
+	}
+
+	public XLog applyA(PrecisionLogParameters parameters) {
+		XLog log = parameters.getFactory().createLog();
+		XConceptExtension.instance().assignName(
+				log,
+				"AA+A^" + parameters.getNofAAA() + "BA+B^" + parameters.getNofBAB() + "AB+B^" + parameters.getNofABB()
+						+ "BB+A^" + parameters.getNofBBA());
+		log.getGlobalEventAttributes().add(XConceptExtension.ATTR_NAME);
+		log.getGlobalTraceAttributes().add(XConceptExtension.ATTR_NAME);
+		log.getClassifiers().add(new XEventAttributeClassifier("Activity", XConceptExtension.KEY_NAME));
+
+		for (int j = 0; j < parameters.getNofAAA(); j++) {
+			addTraces(parameters, log, "A", "A", "A", j);
+		}
+		for (int j = 0; j < parameters.getNofBAB(); j++) {
+			addTraces(parameters, log, "B", "A", "B", j);
+		}
+		for (int j = 0; j < parameters.getNofABB(); j++) {
+			addTraces(parameters, log, "A", "B", "B", j);
+		}
+		for (int j = 0; j < parameters.getNofBBA(); j++) {
+			addTraces(parameters, log, "B", "B", "A", j);
+		}
+		return log;
+	}
+
+	
+	public XLog applyB(PrecisionLogParameters parameters) {
+		XLog log = parameters.getFactory().createLog();
+		XConceptExtension.instance().assignName(log, "AB^100C");
+		log.getGlobalEventAttributes().add(XConceptExtension.ATTR_NAME);
+		log.getGlobalTraceAttributes().add(XConceptExtension.ATTR_NAME);
+		log.getClassifiers().add(new XEventAttributeClassifier("Activity", XConceptExtension.KEY_NAME));
+
+		for (int n = 1; n < 3; n++) {
+			addTrace(parameters, log, "A", "B", n, "C", 0, 0);
+//			addTrace(parameters, log, "A", "B", n, "B", 0, 0);
+		}
+		
+		return log;
+	}
+	private void addTraces(PrecisionLogParameters parameters, XLog log, String firstActivity, String midActivity,
+			String lastActivity, int j) {
+		for (int k = 0; k < parameters.getNof1(); k++) {
+			addTrace(parameters, log, firstActivity, midActivity, 1, lastActivity, j, k);
+		}
+		for (int k = 0; k < parameters.getNof2(); k++) {
+			addTrace(parameters, log, firstActivity, midActivity, 2, lastActivity, j, k);
+		}
+		for (int k = 0; k < parameters.getNof3(); k++) {
+			addTrace(parameters, log, firstActivity, midActivity, 3, lastActivity, j, k);
+		}
+	}
+
+	private void addTrace(PrecisionLogParameters parameters, XLog log, String firstActivity, String midActivity, int n,
+			String lastActivity, int j, int k) {
+		XTrace trace = parameters.getFactory().createTrace();
+		XConceptExtension.instance().assignName(trace,
+				firstActivity + midActivity + "^" + n + lastActivity + "_" + j + "_" + k);
+		XEvent event = parameters.getFactory().createEvent();
+		XConceptExtension.instance().assignName(event, firstActivity);
+		trace.add(event);
+		for (int i = 0; i < n; i++) {
+			event = parameters.getFactory().createEvent();
+			XConceptExtension.instance().assignName(event, midActivity);
+			trace.add(event);
+		}
+		event = parameters.getFactory().createEvent();
+		XConceptExtension.instance().assignName(event, lastActivity);
+		trace.add(event);
+		log.add(trace);
+	}
+}

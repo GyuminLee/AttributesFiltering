@@ -1,0 +1,25 @@
+package org.processmining.ericverbeek.models;
+
+public enum PDC2017Relation {
+	optLT("&lt;"), 
+	optLE("&le;"), 
+	optEQ("="),
+	optGE("&ge;"), 
+	optGT("&gt;"), 
+	optP1("=1+"),
+	optIP1("=[0,1]+"),
+	optM1("+1="),
+	optIM1("+[0,1]="),
+	optP2("=2+"),
+	optM2("+2=");
+	
+	private String relation;
+	
+	private PDC2017Relation(String relation) {
+		this.relation = relation;
+	}
+	
+	public String toString() {
+		return relation;
+	}
+}

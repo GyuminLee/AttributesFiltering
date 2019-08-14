@@ -1,0 +1,114 @@
+package org.processmining.ericverbeek.algorithms;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+
+import org.processmining.ericverbeek.models.DeselEsparzaReduction;
+import org.processmining.ericverbeek.models.DeselEsparzaTransitionReduction;
+import org.processmining.ericverbeek.workspaces.DeselEsparzaReductionWorkspace;
+import org.processmining.models.graphbased.directed.petrinet.PetrinetNode;
+import org.processmining.models.graphbased.directed.petrinet.elements.Transition;
+
+import nl.tue.astar.util.ilp.LPMatrix;
+import nl.tue.astar.util.ilp.LPMatrixException;
+
+public class DeselEsparzaTransitionFinderAlgorithm implements DeselEsparzaFinderAlgorithm {
+
+	private boolean isReversed;
+
+	public DeselEsparzaTransitionFinderAlgorithm(boolean isReversed) {
+		this.isReversed = isReversed;
+	}
+
+	public Collection<DeselEsparzaReduction> apply(DeselEsparzaReductionWorkspace ws) {
+		Collection<DeselEsparzaReduction> reductions = new ArrayList<DeselEsparzaReduction>();
+
+		if (ws.transitions.size() > 1) {
+			for (Transition candidateTransition : ws.transitions) {
+				if (fastCheck(ws, candidateTransition)) {
+					try {
+						double[] nativeSolution = solveMatrix(ws, candidateTransition);
+						if (nativeSolution != null) {
+							Map<Transition, Double> solution = new HashMap<Transition, Double>();
+							for (Transition transition : ws.transitions) {
+								if (nativeSolution[ws.tMap.get(transition)] > 0.0) {
+									solution.put(transition, nativeSolution[ws.tMap.get(transition)]);
+								}
+							}
+							int size = 0;
+							for (int i = 0; i < nativeSolution.length; i++) {
+								if (nativeSolution[i] > 0.0) {
+									size++;
+								}
+							}
+							if (solution.keySet().size() == size) {
+								if (!ws.presets.get(candidateTransition).isEmpty()
+										|| !ws.postsets.get(candidateTransition).isEmpty()) {
+									DeselEsparzaTransitionReduction reduction = new DeselEsparzaTransitionReduction();
+									reduction.setTransition(candidateTransition);
+									reduction.setTransitions(solution.keySet());
+									reduction.setReversed(isReversed);
+									reductions.add(reduction);
+									if (reduction.hasOptimalScore(ws)) {
+										return reductions;
+									}
+								}
+							}
+						}
+					} catch (LPMatrixException e) {
+						e.printStackTrace();
+					}
+				}
+			}
+		}
+
+		return reductions;
+
+	}
+
+	private boolean fastCheck(DeselEsparzaReductionWorkspace ws, Transition transition) {
+		for (PetrinetNode node : ws.presets.get(transition)) {
+			if (ws.postsets.get(node).size() < 2) {
+				return false;
+			}
+		}
+		for (PetrinetNode node : ws.postsets.get(transition)) {
+			if (ws.presets.get(node).size() < 2) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	private double[] solveMatrix(DeselEsparzaReductionWorkspace ws, Transition transition) throws LPMatrixException {
+		LPMatrix<?> matrix = new LPMatrix.SPARSE.LPSOLVE(ws.nofPlaces + ws.nofTransitions, ws.nofTransitions);
+		int row = 0;
+
+		for (int t = 0; t < ws.nofTransitions; t++) {
+			matrix.adjustMat(row, t, 1.0);
+			matrix.setConstrType(row, (t == ws.tMap.get(transition) ? LPMatrix.EQ : LPMatrix.GE));
+			matrix.setRh(row, 0.0);
+			row++;
+		}
+
+		for (int p = 0; p < ws.nofPlaces; p++) {
+			for (int t = 0; t < ws.nofTransitions; t++) {
+				if (ws.incidenceMatrix[p][t] != 0) {
+					matrix.adjustMat(row, t,
+							(isReversed && (t == ws.tMap.get(transition)) ? -1 : 1) * ws.incidenceMatrix[p][t]);
+				}
+			}
+			matrix.setConstrType(row, LPMatrix.EQ);
+			matrix.setRh(row, (isReversed ? -1.0 : 1.0) * ws.incidenceMatrix[p][ws.tMap.get(transition)]);
+			row++;
+		}
+
+		double[] solution = new double[ws.nofTransitions];
+		if (matrix.solve(solution) == LPMatrix.INFEASIBLE) {
+			return null;
+		}
+		return solution;
+	}
+}

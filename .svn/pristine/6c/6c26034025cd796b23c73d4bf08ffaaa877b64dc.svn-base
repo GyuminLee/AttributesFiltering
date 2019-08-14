@@ -1,0 +1,2718 @@
+package org.processmining.ericverbeek.algorithms;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import org.processmining.framework.plugin.annotations.Plugin;
+import org.processmining.framework.util.HTMLToString;
+
+@Plugin(name = "Show Dependency overview", parameterLabels = {}, returnLabels = { "Dependecy overview" }, returnTypes = { HTMLToString.class }, userAccessible = true)
+public abstract class DependencyAlgorithm implements HTMLToString {
+
+	public final static String ALBERTO = "Alberto Corvo";
+	public final static String ALFREDO = "Alfredo Bolt";
+	public final static String ALIFAH = "Alifah Syamsiyah";
+	public final static String ALOK = "Alok Dixit";
+	public final static String AMIN = "Amin Jalali";
+	public final static String ANASTASIIA = "Anastasiia Pika";
+	public final static String ANDREA = "Andrea Burattin";
+	public final static String ANDREAS = "Andreas Rogge-Solti";
+	public final static String ANNA = "Anna Kalenkova";
+	public final static String ARTEM = "Artem Polyvanyy";
+	public final static String BART = "Bart Hompes";
+	public final static String BAS = "Bas van Zelst";
+	public final static String BOUDEWIJN = "Boudewijn van Dongen";
+	public final static String BRUCE = "Huang Huy Nguyen";
+	public final static String CHIARA = "Chiara Di Francescomarino";
+	public final static String CLAUDIO = "Claudio Di Ciccio";
+	public final static String DIRK = "Dirk Fahland";
+	public final static String DENNIS = "Dennis Schunselaar";
+	public final static String ERIC = "Eric Verbeek";
+	public final static String ERIK = "Erik Poppe";
+	public final static String FABRIZIO = "Fabrizio Maggi";
+	public final static String FADE = "Fade Ismael";
+	public final static String FELIX = "Felix Mannhardt";
+	public final static String GEORG = "Georg Kaes";
+	public final static String GUANGMING = "Guangming Li";
+	public final static String HUMBERTO = "Humberto Garcia Caballero";
+	public final static String IRENE = "Irene Vanderfeesten";
+	public final static String JAN = "Jan Claes";
+	public final static String JOOS = "Joos Buijs";
+	public final static String JC = "JC Bose";
+	public final static String JORGE = "Jorge Munoz";
+	public final static String JORIS = "Joris Pasquier";
+	public final static String KEITH = "Keith Low";
+	public final static String KEVIN = "Kevin Du";
+	public final static String KEVINP = "Kevin Pennekamp";
+	public final static String LAURA = "Laura Genga";
+	public final static String MAHDI = "Mahdi Alizadeh";
+	public final static String MANUEL = "Manuel Gall";
+	public final static String MASSI = "Massimiliano de Leoni";
+	public final static String MAIKELL = "Maikel Leemans";
+	public final static String MAIKELVE = "Maikel van Eck";
+	public final static String MARTIN = "Martin Matzner";
+	public final static String MICHAEL = "Michael Westergaard";
+	public final static String MINSEOK = "Minseok Song";
+	public final static String MITCHEL = "Mitchel Schouten";
+	public final static String NIEK = "Niek Tax";
+	public final static String NIKOLAI = "Nikolai Sitnikov";
+	public final static String OLIVER = "Oliver Meier";
+	public final static String ONUR = "Onur Yilmaz";
+	public final static String RAFFAELE = "Raffaele Conforti";
+	public final static String RICCARDO = "Riccardo De Masellis";
+	public final static String SANDER = "Sander Leemans";
+	public final static String SERGIO = "Sergio Hernandez de Mesa";
+	public final static String SHAHAR = "Shahar Harel";
+	public final static String SHENGNAN = "Shengnan Guo";
+	public final static String SURIADI = "Suriadi Suriadi";
+	public final static String THOMAS = "Thomas Baier";
+	public final static String TIJS = "Tijs Slaats";
+	public final static String TOON = "Toon Jouck";
+	public final static String WOUTER = "Wouter Prins";
+	public final static String VLADIMIR = "Vladimir Gromov";
+	public final static String XIXI = "Xixi Lu";
+	public final static String YAN = "Yan Wang";
+	
+	public class Dependency {
+		public String requiredPackage;
+		public String requireePackage;
+
+		public Dependency(String required, String requiree) {
+			this.requiredPackage = required;
+			this.requireePackage = requiree;
+		}
+	}
+
+	public List<Dependency> dependencies;
+	public Map<String, String> established;
+	public Map<String, String> runnerUp;
+	public Map<String, String> starter;
+
+	public Map<String, Integer> levels;
+
+	public String date;
+
+	private void add(String required, String requiree) {
+		dependencies.add(new Dependency(required, requiree));
+		if (established.keySet().contains(requiree)) {
+			if (!established.keySet().contains(required)) {
+				System.err.println("Established package " + requiree + "  depends on package " + required);
+			}
+		} else if (runnerUp.keySet().contains(requiree)) {
+			if (!established.keySet().contains(required) && !runnerUp.keySet().contains(required)) {
+				System.err.println("Runner-up package " + requiree + "  depends on package " + required);
+			}
+		} else if (starter.keySet().contains(requiree)) {
+			if (!established.keySet().contains(required) && !runnerUp.keySet().contains(required) && !starter.keySet().contains(required)) {
+				System.err.println("Starter package " + requiree + "  depends on package " + required);
+			}
+		}
+	}
+
+	public DependencyAlgorithm() {
+		dependencies = new ArrayList<Dependency>();
+		established = new HashMap<String, String>();
+		established.put("AcceptingPetriNet", ERIC);
+		established.put("AcceptingPetriNetClassicalReductor", ERIC);
+		established.put("AcceptingPetriNetDecomposer", ERIC);
+		established.put("AcceptingPetriNetMiner", ERIC);
+		established.put("AcceptingPetriNetRedundantPlacesReductor", ERIC);
+		established.put("ActivityClusterArray", ERIC);
+		established.put("ActivityClusterArrayCreator", ERIC);
+		established.put("ActivityClusterArrayExtractor", JORGE);
+		established.put("AlphaMiner", BOUDEWIJN);
+		established.put("Animation", ERIC);
+		established.put("ApacheUtils", ERIC);
+		established.put("AProMore", RAFFAELE); // ?
+		established.put("BasicUtils", ERIC);
+		established.put("BPMN", ANNA);
+		established.put("BPMNAnalysis", ANNA);
+		established.put("BPMNConversions", ANNA);
+		established.put("BPMNMeasures", ANNA);
+		established.put("BPSim", DENNIS);
+		established.put("CausalActivityGraph", ERIC);
+		established.put("CausalActivityGraphCreator", ERIC);
+		established.put("CausalActivityMatrix", ERIC);
+		established.put("CausalActivityMatrixCreator", ERIC);
+		established.put("CausalActivityMatrixMiner", ERIC);
+		established.put("CNet", BOUDEWIJN);
+		established.put("CNetReplayer", BOUDEWIJN);
+		established.put("CPNet", MICHAEL);
+		established.put("Compliance", DIRK);
+		established.put("ConceptDrift", JC);
+		established.put("COSAImportExport", ERIC);
+		established.put("Cosimulation", MICHAEL);
+		established.put("Daikon", FELIX);
+		established.put("DataAwareReplayer", FELIX);
+		established.put("DataDiscovery", FELIX);
+		established.put("DataExpression", FELIX);
+		established.put("DataPetriNets", FELIX);
+		established.put("DecomposedMiner", ERIC);
+		established.put("DecomposedReplayer", ERIC);
+		established.put("DivideAndConquer", ERIC);
+//		established.put("DottedChart", ERIC);
+//		established.put("DottedChart2", BOUDEWIJN);
+		established.put("EfficientStorage", BOUDEWIJN);
+		established.put("EMF", DENNIS);
+		established.put("EPC", ERIC);
+		established.put("EPCConversion", ERIC);
+		established.put("EstablishedPackages", ERIC);
+		established.put("ETConformance", JORGE);
+		established.put("EvolutionaryTreeMiner", JOOS);
+		established.put("FeaturePrediction", MASSI);
+		established.put("Flex", BOUDEWIJN);
+		established.put("FlexReplayer", BOUDEWIJN);
+		established.put("Fuzzy", ERIC);
+		established.put("GPLv2Utils", ERIC);
+		established.put("GraphStream", ERIC);
+		established.put("GraphVisualizers", ERIC);
+		established.put("GraphViz", SANDER);
+		established.put("GuideTreeMiner", JC);
+		established.put("HeuristicsMiner", MAIKELVE);
+		established.put("HeuristicsCNetMiner", MAIKELVE);
+		established.put("HybridILPMiner", BAS);
+		established.put("ILPMiner", BAS);
+		established.put("InductiveMiner", SANDER);
+		established.put("InductiveVisualMiner", SANDER);
+		established.put("InteractiveVisualization", BOUDEWIJN);
+//		established.put("KeyValue", FELIX);
+		established.put("LocalizedLogs", ANNA);
+		established.put("Log", ERIC);
+		established.put("LogAbstractions", BAS);
+		established.put("LogAlignment", ERIC);
+		established.put("LogDecomposer", ERIC);
+		established.put("LogDialog", ERIC);
+		established.put("LogEnhancement", FELIX);
+		established.put("LogMerge", JAN);
+//		established.put("LogMetrics", BOUDEWIJN);
+//		established.put("LogOverview", BOUDEWIJN);
+		established.put("LogProjection", BOUDEWIJN);
+		established.put("LogTimeFilter", ANDREA);
+		established.put("LpSolve", BAS);
+		established.put("LPEngine", BAS);
+		established.put("ModelRepair", DIRK);
+		established.put("Murata", ERIC);
+		established.put("OperationalSupport", MICHAEL);
+		established.put("OSService", MICHAEL);
+		established.put("PartialOrderReplayer", XIXI);
+		established.put("PatternAbstractions", JC);
+		established.put("Performance", BOUDEWIJN);
+		established.put("Petra", DENNIS);
+		established.put("Petrify", BOUDEWIJN);
+		established.put("PetriNetReplayAnalysis", BOUDEWIJN);
+		established.put("PetriNets", BOUDEWIJN);
+		established.put("PNAnalysis", BOUDEWIJN);
+		established.put("PNetAlignmentAnalysis", BOUDEWIJN);
+		established.put("PNetReplayer", BOUDEWIJN);
+		established.put("PomPomView", ERIC);
+		established.put("PPM", JAN);
+		established.put("ProcessLogGenerator", ANDREA);
+		established.put("ProcessTree", DENNIS);
+		established.put("Properties", DENNIS);
+		established.put("PTConversions", DENNIS);
+		established.put("PTMerge", DENNIS);
+		established.put("Saxon", ERIC);
+		established.put("Scala", ERIC);
+		established.put("ServiceTech", ERIC);
+		established.put("SignatureDiscovery", JC);
+		established.put("SimpleLogOperations", JAN);
+		established.put("SocialNetwork", MINSEOK);
+		established.put("StochasticPetriNets", ANDREAS);
+		established.put("TraceAlignment", JC);
+		established.put("TraceAlignmentWithGuideTree", JC);
+		established.put("TransitionSystems", ERIC);
+		established.put("TSPetrinet", BOUDEWIJN);
+		established.put("Uma", DIRK);
+		established.put("Weka", ERIC);
+		established.put("Widgets", FELIX);
+		established.put("Woflan", ERIC);
+		established.put("XESAlignmentExtension", FELIX);
+		established.put("XESLite", FELIX);
+		established.put("YAWL", ERIC);
+
+		runnerUp = new HashMap<String, String>();
+		runnerUp.put("ChangeVisualization", KEITH);
+		runnerUp.put("ComparisonFramework", JOOS);
+		runnerUp.put("ComplianceFramework", VLADIMIR);
+		runnerUp.put("ContextDottedChart", BOUDEWIJN);
+		runnerUp.put("DataAwareExplorer", FELIX);
+		runnerUp.put("DifferenceGraph", MANUEL);
+		runnerUp.put("EpisodeMiner", MAIKELL);
+		runnerUp.put("GeneralizedConformance", ANDREAS);
+		runnerUp.put("LogOnMapReplay", MASSI);
+		runnerUp.put("MultiPerspectiveProcessExplorer", FELIX);
+//		runnerUp.put("ProcessTreeEnricher", DENNIS);
+		runnerUp.put("RunnerUpPackages", ERIC);
+//		runnerUp.put("ScientificExperiments", JOOS);
+		runnerUp.put("SelectivePRepair", ARTEM);
+		runnerUp.put("TraceMatching", XIXI);
+
+		starter = new HashMap<String, String>();
+		starter.put("AntiAlignments", BOUDEWIJN);
+//		starter.put("BalancedConformanceChecker", ANDREA);
+//		starter.put("BPConformance", THOMAS);
+		starter.put("Big4Prom", LAURA);
+		starter.put("BPMNMiner", RAFFAELE);
+//		starter.put("BPMNVisualizer", ANDREA);
+		starter.put("BusinessProcessHierarchy", KEVINP);
+//		starter.put("ChangeTree", GEORG);
+		starter.put("ChordDiagram", AMIN);
+		starter.put("ConfigurableProcesses", JORGE);
+		starter.put("ContextAwarePerformance", BART);
+		starter.put("CostBasedAnalysis", KEITH);
+		starter.put("CostOptimization", KEITH);
+//		starter.put("CrossOrgProcMin", ONUR);
+		starter.put("CSMMiner", MAIKELVE);
+//		starter.put("CSVImporter", ANDREA);
+		starter.put("DataAwareCNetMiner", FELIX);
+		starter.put("DataAwareDeclareMiner", FABRIZIO);
+		starter.put("DatabaseSocialNetwork", ALIFAH);
+		starter.put("DatabaseInductiveMiner", ALIFAH);
+		starter.put("DeclareAnalyzer", FABRIZIO);
+		starter.put("DeclareChecker", FABRIZIO);
+		starter.put("DeclareMiner", FABRIZIO);
+		starter.put("DeclareMinerFul", CLAUDIO);
+		starter.put("DeclareMinerVisualizer", FABRIZIO);
+		starter.put("DeclareVisualizer", FABRIZIO);
+//		starter.put("Event2ActivityMatcher", THOMAS);
+		starter.put("EventGapAnalysis", SURIADI);
+//		starter.put("EventRevision", OLIVER);
+		starter.put("EventStream", BAS);
+//		starter.put("FeedbackRepair", JORGE);
+		starter.put("FuzzyMiner", CHIARA + " and " + RICCARDO);
+//		starter.put("Hadoop", BAS + " and " + SERGIO);
+		starter.put("HistoryAwareConformanceChecking", MAHDI);
+		starter.put("Hybrid", DENNIS); // + TIJS
+//		starter.put("IntentionMiner", JORIS);
+//		starter.put("InteractiveProcessMining", ALOK);
+//		starter.put("IntroductionToProcessMining2IMI35", ERIC);
+//		starter.put("JDBC", BOUDEWIJN);
+		starter.put("LocalProcessModelDiscovery",  NIEK);
+//		starter.put("LogMergeM2M", FADE);
+		starter.put("LogPatternExplorer", XIXI);
+		starter.put("LTL2Automaton", FABRIZIO);
+		starter.put("LTLChecker", FABRIZIO);
+//		starter.put("MiningResourceProfiles", ANASTASIIA);
+		starter.put("MixedParadigm", BOUDEWIJN); // + CLAUDIO + Johannes De Semdt
+		starter.put("MobuconLDL", FABRIZIO);
+//		starter.put("MobuconLTL", FABRIZIO);
+		starter.put("MultiPerspectiveMiner", ANDREA);
+//		starter.put("NoiseFiltering", RAFFAELE);
+		starter.put("NonAtomicDeclareMiner", FABRIZIO);
+		starter.put("OCBC", GUANGMING);
+//		starter.put("OnlineConformance", BOUDEWIJN + " and " + ANDREA);
+//		starter.put("OriginatorDecorator", ANDREA);
+		starter.put("ProcessAnalytics", ALOK + ", " + HUMBERTO + ", " + ALBERTO + ", and " + BART);
+//		starter.put("OverallProcessRisk", ANASTASIIA);
+		starter.put("ProcessComparator", ALFREDO);
+//		starter.put("ProcessCubes", SHENGNAN);
+		starter.put("ProcessProfiler3D", ERIK);
+//		starter.put("ProcessRiskIndicators", ANASTASIIA);
+//		starter.put("ProductData", IRENE);
+		starter.put("ProjectedRecallAndPrecision", SANDER);
+		starter.put("ProM5", ERIC);
+//		starter.put("Prompt", ANDREA);
+		starter.put("PTAndLogGenerator", TOON);
+//		starter.put("QMiner", SHAHAR);
+		starter.put("QualityMetrics", DENNIS);
+//		starter.put("RegPFA", MARTIN);
+//		starter.put("RelationalXES", BOUDEWIJN);
+		starter.put("ResourceQueueBehaviour", SURIADI);
+//		starter.put("ResourceRecommendation", JORGE);
+		starter.put("RichEventLogGenerator", KEVIN);
+		starter.put("Security", MAHDI);
+//		starter.put("SLog", JORGE);
+//		starter.put("Specifact", JORGE);
+//		starter.put("StagedProcessFlows", BRUCE);
+//		starter.put("Statechart", MAIKELL);
+		starter.put("Stream", BAS);
+		starter.put("StreamAbstractRepresentation", BAS);
+		starter.put("StreamAlphaMiner", BAS);
+		starter.put("StreamAnalysis", BAS);
+//		starter.put("StreamDeclareDiscovery", ANDREA);
+		starter.put("StreamInductiveMiner", BAS);
+		starter.put("StreamSocialNetworks", BAS);
+		starter.put("StreamTransitionSystemsMiner", BAS);
+//		starter.put("StructuredMiner", RAFFAELE);
+		starter.put("Swimlanes", ANDREA);
+		starter.put("Swimlanes", ANDREA);
+//		starter.put("TimeBar", WOUTER);
+		starter.put("TraceClustering", BART);
+//		starter.put("TraceReplayer", ALFREDO);
+//		starter.put("TS2DEVS", YAN);
+		starter.put("UncertaintyMarker", OLIVER);
+		starter.put("VideoLectureAnalysis", ALFREDO);
+		starter.put("VisualPetriNetAnalyzer", ERIC); // Joris Reijrink, Capita Selecta WvdA
+
+		init();
+		resolve();
+	}
+
+	private void resolve() {
+		levels = new HashMap<String, Integer>();
+		int level = 0;
+		Set<String> toResolve = new HashSet<String>();
+		for (Dependency dependency : dependencies) {
+			toResolve.add(dependency.requiredPackage);
+			toResolve.add(dependency.requireePackage);
+		}
+		// Need to resolve all packages in toResolve.
+		while (!toResolve.isEmpty()) {
+			/*
+			 * Assume all are resolved unless proven otherwise.
+			 */
+			Set<String> resolved = new HashSet<String>(toResolve);
+			for (Dependency dependency : dependencies) {
+				if (toResolve.contains(dependency.requiredPackage)) {
+					/*
+					 * requirePackage requires requiredPackage, which has not
+					 * been resolved yet. So, we cannot resolve requireePackage
+					 * now.
+					 */
+					resolved.remove(dependency.requireePackage);
+				}
+			}
+			if (resolved.isEmpty()) {
+				/*
+				 * Nothing has been resolved. There must be cyclic dependencies.
+				 */
+				for (Dependency dependency : dependencies) {
+					if (toResolve.contains(dependency.requiredPackage)
+							&& toResolve.contains(dependency.requireePackage)) {
+						/*
+						 * Part of cyclic dependency. Print on stderr as diagnostic information.
+						 */
+						System.err.println(dependency.requiredPackage + " <- " + dependency.requireePackage);
+					}
+				}
+				/*
+				 * Also print all packages that still need to be resolved.
+				 */
+				for (String up : toResolve) {
+					levels.put(up, 99);
+				}
+				/*
+				 * Clear to avoid another iteration.
+				 */
+				toResolve.clear();
+			} else {
+				/*
+				 * List all currently resolved packages on the current level.
+				 */
+				for (String up : resolved) {
+					levels.put(up, level);
+				}
+				/*
+				 * Increase level.
+				 */
+				level++;
+				/*
+				 * These packages have now been resolved.
+				 */
+				toResolve.removeAll(resolved);
+			}
+		}
+		/*
+		 * Last level is for umbrella packages.
+		 */
+		levels.put("EstablishedPackages", level);
+		levels.put("RunnerUpPackages", level);
+	}
+
+	private void init() {
+		// Update date when necessary.
+		date = new String("02/24/2016");
+		// The following line is needed to include the LpSolve package.
+		add("LpSolve", "LPEngine");
+		// The following lines are needed to include the DivideAndConquer package.
+		add("DecomposedMiner", "DivideAndConquer");
+		add("DecomposedReplayer", "DivideAndConquer");
+		// The following dependency lines come from running the "buildGraph.sh" script on ais-hudson.
+		// These correspond to the compile-time dependencies (packagelib folder) as registered in the packages.
+		add("BasicUtils", "AbderrahmaneMaaradji"); // Packagelib
+		add("ApacheUtils", "AcceptingPetriNet"); // Ivy
+		add("BasicUtils", "AcceptingPetriNet"); // Ivy
+		add("Log", "AcceptingPetriNet"); // Ivy
+		add("PetriNets", "AcceptingPetriNet"); // Ivy
+		add("Saxon", "AcceptingPetriNet"); // Ivy
+		add("Widgets", "AcceptingPetriNet"); // Ivy
+		add("AcceptingPetriNet", "AcceptingPetriNetClassicalReductor"); // Ivy
+		add("ApacheUtils", "AcceptingPetriNetClassicalReductor"); // Ivy
+		add("BasicUtils", "AcceptingPetriNetClassicalReductor"); // Ivy
+		add("Log", "AcceptingPetriNetClassicalReductor"); // Ivy
+		add("LPEngine", "AcceptingPetriNetClassicalReductor"); // Ivy
+		add("LpSolve", "AcceptingPetriNetClassicalReductor"); // Ivy
+		add("Murata", "AcceptingPetriNetClassicalReductor"); // Ivy
+		add("PetriNets", "AcceptingPetriNetClassicalReductor"); // Ivy
+		add("Saxon", "AcceptingPetriNetClassicalReductor"); // Ivy
+		add("Widgets", "AcceptingPetriNetClassicalReductor"); // Ivy
+		add("AcceptingPetriNet", "AcceptingPetriNetDecomposer"); // Ivy
+		add("ActivityClusterArray", "AcceptingPetriNetDecomposer"); // Ivy
+		add("ApacheUtils", "AcceptingPetriNetDecomposer"); // Ivy
+		add("BasicUtils", "AcceptingPetriNetDecomposer"); // Ivy
+		add("Log", "AcceptingPetriNetDecomposer"); // Ivy
+		add("LPEngine", "AcceptingPetriNetDecomposer"); // Ivy
+		add("LpSolve", "AcceptingPetriNetDecomposer"); // Ivy
+		add("Murata", "AcceptingPetriNetDecomposer"); // Ivy
+		add("PetriNets", "AcceptingPetriNetDecomposer"); // Ivy
+		add("PNetReplayer", "AcceptingPetriNetDecomposer"); // Ivy
+		add("Saxon", "AcceptingPetriNetDecomposer"); // Ivy
+		add("Widgets", "AcceptingPetriNetDecomposer"); // Ivy
+		add("AcceptingPetriNetClassicalReductor", "AcceptingPetriNetMiner"); // Ivy
+		add("AcceptingPetriNet", "AcceptingPetriNetMiner"); // Ivy
+		add("ActivityClusterArrayCreator", "AcceptingPetriNetMiner"); // Ivy
+		add("ActivityClusterArray", "AcceptingPetriNetMiner"); // Ivy
+		add("AlphaMiner", "AcceptingPetriNetMiner"); // Ivy
+		add("ApacheUtils", "AcceptingPetriNetMiner"); // Ivy
+		add("BasicUtils", "AcceptingPetriNetMiner"); // Ivy
+		add("CausalActivityGraphCreator", "AcceptingPetriNetMiner"); // Ivy
+		add("CausalActivityGraph", "AcceptingPetriNetMiner"); // Ivy
+		add("CausalActivityMatrix", "AcceptingPetriNetMiner"); // Ivy
+		add("CausalActivityMatrixMiner", "AcceptingPetriNetMiner"); // Ivy
+		add("EfficientStorage", "AcceptingPetriNetMiner"); // Ivy
+		add("ETConformance", "AcceptingPetriNetMiner"); // Ivy
+		add("EvolutionaryTreeMiner", "AcceptingPetriNetMiner"); // Ivy
+		add("Flex", "AcceptingPetriNetMiner"); // Ivy
+		add("Fuzzy", "AcceptingPetriNetMiner"); // Ivy
+		add("GraphVisualizers", "AcceptingPetriNetMiner"); // Ivy
+		add("GraphViz", "AcceptingPetriNetMiner"); // Ivy
+		add("HeuristicsMiner", "AcceptingPetriNetMiner"); // Ivy
+		add("HybridILPMiner", "AcceptingPetriNetMiner"); // Ivy
+		add("ILPMiner", "AcceptingPetriNetMiner"); // Ivy
+		add("InductiveMiner", "AcceptingPetriNetMiner"); // Ivy
+		add("LogAbstractions", "AcceptingPetriNetMiner"); // Ivy
+		add("LogDecomposer", "AcceptingPetriNetMiner"); // Ivy
+		add("Log", "AcceptingPetriNetMiner"); // Ivy
+		add("LPEngine", "AcceptingPetriNetMiner"); // Ivy
+		add("LpSolve", "AcceptingPetriNetMiner"); // Ivy
+		add("Murata", "AcceptingPetriNetMiner"); // Ivy
+		add("PetriNets", "AcceptingPetriNetMiner"); // Ivy
+		add("PNetAlignmentAnalysis", "AcceptingPetriNetMiner"); // Ivy
+		add("PNetReplayer", "AcceptingPetriNetMiner"); // Ivy
+		add("ProcessTree", "AcceptingPetriNetMiner"); // Ivy
+		add("Properties", "AcceptingPetriNetMiner"); // Ivy
+		add("PTMerge", "AcceptingPetriNetMiner"); // Ivy
+		add("Saxon", "AcceptingPetriNetMiner"); // Ivy
+		add("TransitionSystems", "AcceptingPetriNetMiner"); // Ivy
+		add("Widgets", "AcceptingPetriNetMiner"); // Ivy
+		add("AcceptingPetriNet", "AcceptingPetriNetRedundantPlacesReductor"); // Ivy
+		add("ApacheUtils", "AcceptingPetriNetRedundantPlacesReductor"); // Ivy
+		add("BasicUtils", "AcceptingPetriNetRedundantPlacesReductor"); // Ivy
+		add("Log", "AcceptingPetriNetRedundantPlacesReductor"); // Ivy
+		add("LPEngine", "AcceptingPetriNetRedundantPlacesReductor"); // Ivy
+		add("LpSolve", "AcceptingPetriNetRedundantPlacesReductor"); // Ivy
+		add("Murata", "AcceptingPetriNetRedundantPlacesReductor"); // Ivy
+		add("PetriNets", "AcceptingPetriNetRedundantPlacesReductor"); // Ivy
+		add("Saxon", "AcceptingPetriNetRedundantPlacesReductor"); // Ivy
+		add("Widgets", "AcceptingPetriNetRedundantPlacesReductor"); // Ivy
+		add("ApacheUtils", "ActivityClusterArray"); // Ivy
+		add("BasicUtils", "ActivityClusterArray"); // Ivy
+		add("Log", "ActivityClusterArray"); // Ivy
+		add("Saxon", "ActivityClusterArray"); // Ivy
+		add("Widgets", "ActivityClusterArray"); // Ivy
+		add("ActivityClusterArray", "ActivityClusterArrayCreator"); // Ivy
+		add("ApacheUtils", "ActivityClusterArrayCreator"); // Ivy
+		add("BasicUtils", "ActivityClusterArrayCreator"); // Ivy
+		add("CausalActivityGraph", "ActivityClusterArrayCreator"); // Ivy
+		add("Log", "ActivityClusterArrayCreator"); // Ivy
+		add("Saxon", "ActivityClusterArrayCreator"); // Ivy
+		add("Widgets", "ActivityClusterArrayCreator"); // Ivy
+		add("AcceptingPetriNet", "ActivityClusterArrayExtractor"); // Ivy
+		add("ActivityClusterArray", "ActivityClusterArrayExtractor"); // Ivy
+		add("ApacheUtils", "ActivityClusterArrayExtractor"); // Ivy
+		add("BasicUtils", "ActivityClusterArrayExtractor"); // Ivy
+		add("Log", "ActivityClusterArrayExtractor"); // Ivy
+		add("PetriNets", "ActivityClusterArrayExtractor"); // Ivy
+		add("PNetReplayer", "ActivityClusterArrayExtractor"); // Ivy
+		add("Saxon", "ActivityClusterArrayExtractor"); // Ivy
+		add("Widgets", "ActivityClusterArrayExtractor"); // Ivy
+		add("ApacheUtils", "AlfonsoMarquez"); // Ivy
+		add("BasicUtils", "AlfonsoMarquez"); // Ivy
+		add("Log", "AlfonsoMarquez"); // Ivy
+		add("Saxon", "AlfonsoMarquez"); // Ivy
+		add("Widgets", "AlfonsoMarquez"); // Ivy
+		add("BasicUtils", "AlfredoBolt"); // Packagelib
+		add("Animation", "AlfredoBolt"); // Ivy
+		add("ApacheUtils", "AlfredoBolt"); // Ivy
+		add("BasicUtils", "AlfredoBolt"); // Ivy
+		add("EfficientStorage", "AlfredoBolt"); // Ivy
+		add("EvolutionaryTreeMiner", "AlfredoBolt"); // Ivy
+		add("GraphViz", "AlfredoBolt"); // Ivy
+		add("InductiveMiner", "AlfredoBolt"); // Ivy
+		add("InductiveVisualMiner", "AlfredoBolt"); // Ivy
+		add("Log", "AlfredoBolt"); // Ivy
+		add("LpSolve", "AlfredoBolt"); // Ivy
+		add("PetriNets", "AlfredoBolt"); // Ivy
+		add("PNetReplayer", "AlfredoBolt"); // Ivy
+		add("ProcessTree", "AlfredoBolt"); // Ivy
+		add("Properties", "AlfredoBolt"); // Ivy
+		add("PTMerge", "AlfredoBolt"); // Ivy
+		add("Saxon", "AlfredoBolt"); // Ivy
+		add("Widgets", "AlfredoBolt"); // Ivy
+		add("XESLite", "AlfredoBolt"); // Ivy
+		add("MySQL", "AlifahSyamsiyah"); // Packagelib
+		add("AcceptingPetriNet", "AlifahSyamsiyah"); // Ivy
+		add("AlphaMiner", "AlifahSyamsiyah"); // Ivy
+		add("ApacheUtils", "AlifahSyamsiyah"); // Ivy
+		add("BasicUtils", "AlifahSyamsiyah"); // Ivy
+		add("InductiveMiner", "AlifahSyamsiyah"); // Ivy
+		add("LogAbstractions", "AlifahSyamsiyah"); // Ivy
+		add("Log", "AlifahSyamsiyah"); // Ivy
+		add("PetriNets", "AlifahSyamsiyah"); // Ivy
+		add("PNetReplayer", "AlifahSyamsiyah"); // Ivy
+		add("ProcessTree", "AlifahSyamsiyah"); // Ivy
+		add("Properties", "AlifahSyamsiyah"); // Ivy
+		add("Saxon", "AlifahSyamsiyah"); // Ivy
+		add("Widgets", "AlifahSyamsiyah"); // Ivy
+		add("XESLite", "AlifahSyamsiyah"); // Ivy
+		add("AcceptingPetriNet", "AlphaMiner"); // Ivy
+		add("ApacheUtils", "AlphaMiner"); // Ivy
+		add("BasicUtils", "AlphaMiner"); // Ivy
+		add("LogAbstractions", "AlphaMiner"); // Ivy
+		add("Log", "AlphaMiner"); // Ivy
+		add("PetriNets", "AlphaMiner"); // Ivy
+		add("Saxon", "AlphaMiner"); // Ivy
+		add("Widgets", "AlphaMiner"); // Ivy
+		add("BasicUtils", "Animation"); // Packagelib
+		add("Log", "Animation"); // Packagelib
+		add("Widgets", "Animation"); // Packagelib
+		add("ApacheUtils", "AntiAlignments"); // Ivy
+		add("BasicUtils", "AntiAlignments"); // Ivy
+		add("EfficientStorage", "AntiAlignments"); // Ivy
+		add("Log", "AntiAlignments"); // Ivy
+		add("PetriNets", "AntiAlignments"); // Ivy
+		add("PNetReplayer", "AntiAlignments"); // Ivy
+		add("Saxon", "AntiAlignments"); // Ivy
+		add("Widgets", "AntiAlignments"); // Ivy
+		add("ApacheUtils", "AProMore"); // Packagelib
+		add("BPMN", "AProMore"); // Packagelib
+		add("EPC", "AProMore"); // Packagelib
+		add("Flex", "AProMore"); // Packagelib
+		add("FlexReplayer", "AProMore"); // Packagelib
+		add("LogDialog", "AProMore"); // Packagelib
+		add("Log", "AProMore"); // Packagelib
+		add("PetriNets", "AProMore"); // Packagelib
+		add("Widgets", "AProMore"); // Packagelib
+		add("YAWL", "AProMore"); // Packagelib
+		add("BasicUtils", "BalancedConformanceChecker"); // Packagelib
+		add("Widgets", "BalancedConformanceChecker"); // Packagelib
+		add("IG", "Big4Prom"); // Packagelib
+		add("jgraph", "Big4Prom"); // Packagelib
+		add("mysql-connector-java-5.1.7-bin", "Big4Prom"); // Packagelib
+		add("PNetReplayer", "Big4Prom"); // Packagelib
+		add("ApacheUtils", "Big4Prom"); // Ivy
+		add("BasicUtils", "Big4Prom"); // Ivy
+		add("Log", "Big4Prom"); // Ivy
+		add("Saxon", "Big4Prom"); // Ivy
+		add("Widgets", "Big4Prom"); // Ivy
+		add("BasicUtils", "BorisNikolov"); // Packagelib
+		add("BasicUtils", "BPConformance"); // Packagelib
+		add("Log", "BPConformance"); // Packagelib
+		add("LTLChecker", "BPConformance"); // Packagelib
+		add("PetriNets", "BPConformance"); // Packagelib
+		add("ApacheUtils", "BPIC2015"); // Ivy
+		add("BasicUtils", "BPIC2015"); // Ivy
+		add("Log", "BPIC2015"); // Ivy
+		add("Saxon", "BPIC2015"); // Ivy
+		add("Widgets", "BPIC2015"); // Ivy
+		add("ApacheUtils", "BPMN"); // Packagelib
+		add("Log", "BPMN"); // Packagelib
+		add("Widgets", "BPMN"); // Packagelib
+		add("BasicUtils", "BPMNAnalysis"); // Packagelib
+		add("BPMNConversions", "BPMNAnalysis"); // Packagelib
+		add("BPMN", "BPMNAnalysis"); // Packagelib
+		add("DataPetriNets", "BPMNAnalysis"); // Packagelib
+		add("EfficientStorage", "BPMNAnalysis"); // Packagelib
+		add("Flex", "BPMNAnalysis"); // Packagelib
+		add("FlexReplayer", "BPMNAnalysis"); // Packagelib
+		add("HeuristicsCNetMiner", "BPMNAnalysis"); // Packagelib
+		add("HeuristicsMiner", "BPMNAnalysis"); // Packagelib
+		add("Log", "BPMNAnalysis"); // Packagelib
+		add("PetriNets", "BPMNAnalysis"); // Packagelib
+		add("PNetReplayer", "BPMNAnalysis"); // Packagelib
+		add("ProcessTree", "BPMNAnalysis"); // Packagelib
+		add("Properties", "BPMNAnalysis"); // Packagelib
+		add("SocialNetwork", "BPMNAnalysis"); // Packagelib
+		add("Widgets", "BPMNAnalysis"); // Packagelib
+		add("YAWL", "BPMNAnalysis"); // Packagelib
+		add("ApacheUtils", "BPMNConversions"); // Packagelib
+		add("BPMN", "BPMNConversions"); // Packagelib
+		add("DataExpression", "BPMNConversions"); // Packagelib
+		add("DataPetriNets", "BPMNConversions"); // Packagelib
+		add("Flex", "BPMNConversions"); // Packagelib
+		add("Log", "BPMNConversions"); // Packagelib
+		add("PetriNets", "BPMNConversions"); // Packagelib
+		add("PNAnalysis", "BPMNConversions"); // Packagelib
+		add("ProcessTree", "BPMNConversions"); // Packagelib
+		add("Properties", "BPMNConversions"); // Packagelib
+		add("Widgets", "BPMNConversions"); // Packagelib
+		add("ApacheUtils", "BPMNMeasures"); // Ivy
+		add("BasicUtils", "BPMNMeasures"); // Ivy
+		add("BPMN", "BPMNMeasures"); // Ivy
+		add("InteractiveVisualization", "BPMNMeasures"); // Ivy
+		add("LogDialog", "BPMNMeasures"); // Ivy
+		add("Log", "BPMNMeasures"); // Ivy
+		add("LogMerge", "BPMNMeasures"); // Ivy
+		add("PetriNetReplayAnalysis", "BPMNMeasures"); // Ivy
+		add("PetriNets", "BPMNMeasures"); // Ivy
+		add("Saxon", "BPMNMeasures"); // Ivy
+		add("Widgets", "BPMNMeasures"); // Ivy
+		add("AlphaMiner", "BPMNMiner"); // Packagelib
+		add("ApacheUtils", "BPMNMiner"); // Packagelib
+		add("BasicUtils", "BPMNMiner"); // Packagelib
+		add("BPMN", "BPMNMiner"); // Packagelib
+		add("GraphViz", "BPMNMiner"); // Packagelib
+		add("HeuristicsMiner", "BPMNMiner"); // Packagelib
+		add("ILPMiner", "BPMNMiner"); // Packagelib
+		add("InductiveMiner", "BPMNMiner"); // Packagelib
+		add("LogAbstractions", "BPMNMiner"); // Packagelib
+		add("Log", "BPMNMiner"); // Packagelib
+		add("PetriNets", "BPMNMiner"); // Packagelib
+		add("PNetReplayer", "BPMNMiner"); // Packagelib
+		add("ProcessTree", "BPMNMiner"); // Packagelib
+		add("ProM5", "BPMNMiner"); // Packagelib
+		add("Properties", "BPMNMiner"); // Packagelib
+		add("Widgets", "BPMNMiner"); // Packagelib
+		add("BasicUtils", "BPMNVisualizer"); // Packagelib
+		add("Widgets", "BPMNVisualizer"); // Packagelib
+		add("ApacheUtils", "BPSim"); // Packagelib
+		add("BPMNConversions", "BPSim"); // Packagelib
+		add("BPMN", "BPSim"); // Packagelib
+		add("ProcessTree", "BPSim"); // Packagelib
+		add("Properties", "BPSim"); // Packagelib
+		add("ApacheUtils", "BramKohl"); // Ivy
+		add("BasicUtils", "BramKohl"); // Ivy
+		add("Log", "BramKohl"); // Ivy
+		add("Saxon", "BramKohl"); // Ivy
+		add("Widgets", "BramKohl"); // Ivy
+		add("ApacheUtils", "BusinessProcessHierarchy"); // Ivy
+		add("BasicUtils", "BusinessProcessHierarchy"); // Ivy
+		add("EfficientStorage", "BusinessProcessHierarchy"); // Ivy
+		add("EvolutionaryTreeMiner", "BusinessProcessHierarchy"); // Ivy
+		add("GraphViz", "BusinessProcessHierarchy"); // Ivy
+		add("InductiveMiner", "BusinessProcessHierarchy"); // Ivy
+		add("InductiveVisualMiner", "BusinessProcessHierarchy"); // Ivy
+		add("Log", "BusinessProcessHierarchy"); // Ivy
+		add("LpSolve", "BusinessProcessHierarchy"); // Ivy
+		add("PetriNets", "BusinessProcessHierarchy"); // Ivy
+		add("PNetReplayer", "BusinessProcessHierarchy"); // Ivy
+		add("ProcessTree", "BusinessProcessHierarchy"); // Ivy
+		add("Properties", "BusinessProcessHierarchy"); // Ivy
+		add("PTMerge", "BusinessProcessHierarchy"); // Ivy
+		add("Saxon", "BusinessProcessHierarchy"); // Ivy
+		add("Widgets", "BusinessProcessHierarchy"); // Ivy
+		add("ApacheUtils", "CausalActivityGraph"); // Ivy
+		add("BasicUtils", "CausalActivityGraph"); // Ivy
+		add("Log", "CausalActivityGraph"); // Ivy
+		add("Saxon", "CausalActivityGraph"); // Ivy
+		add("Widgets", "CausalActivityGraph"); // Ivy
+		add("AcceptingPetriNet", "CausalActivityGraphCreator"); // Ivy
+		add("ActivityClusterArrayCreator", "CausalActivityGraphCreator"); // Ivy
+		add("ActivityClusterArray", "CausalActivityGraphCreator"); // Ivy
+		add("ApacheUtils", "CausalActivityGraphCreator"); // Ivy
+		add("BasicUtils", "CausalActivityGraphCreator"); // Ivy
+		add("CausalActivityGraph", "CausalActivityGraphCreator"); // Ivy
+		add("CausalActivityMatrix", "CausalActivityGraphCreator"); // Ivy
+		add("CausalActivityMatrixMiner", "CausalActivityGraphCreator"); // Ivy
+		add("Fuzzy", "CausalActivityGraphCreator"); // Ivy
+		add("GraphVisualizers", "CausalActivityGraphCreator"); // Ivy
+		add("GraphViz", "CausalActivityGraphCreator"); // Ivy
+		add("LogAbstractions", "CausalActivityGraphCreator"); // Ivy
+		add("Log", "CausalActivityGraphCreator"); // Ivy
+		add("PetriNets", "CausalActivityGraphCreator"); // Ivy
+		add("Saxon", "CausalActivityGraphCreator"); // Ivy
+		add("TransitionSystems", "CausalActivityGraphCreator"); // Ivy
+		add("Widgets", "CausalActivityGraphCreator"); // Ivy
+		add("ApacheUtils", "CausalActivityMatrix"); // Ivy
+		add("BasicUtils", "CausalActivityMatrix"); // Ivy
+		add("Log", "CausalActivityMatrix"); // Ivy
+		add("Saxon", "CausalActivityMatrix"); // Ivy
+		add("Widgets", "CausalActivityMatrix"); // Ivy
+		add("AcceptingPetriNet", "CausalActivityMatrixCreator"); // Ivy
+		add("ApacheUtils", "CausalActivityMatrixCreator"); // Ivy
+		add("BasicUtils", "CausalActivityMatrixCreator"); // Ivy
+		add("CausalActivityMatrix", "CausalActivityMatrixCreator"); // Ivy
+		add("Log", "CausalActivityMatrixCreator"); // Ivy
+		add("PetriNets", "CausalActivityMatrixCreator"); // Ivy
+		add("PNAnalysis", "CausalActivityMatrixCreator"); // Ivy
+		add("PNetReplayer", "CausalActivityMatrixCreator"); // Ivy
+		add("Saxon", "CausalActivityMatrixCreator"); // Ivy
+		add("TransitionSystems", "CausalActivityMatrixCreator"); // Ivy
+		add("Widgets", "CausalActivityMatrixCreator"); // Ivy
+		add("ApacheUtils", "CausalActivityMatrixMiner"); // Ivy
+		add("BasicUtils", "CausalActivityMatrixMiner"); // Ivy
+		add("CausalActivityMatrix", "CausalActivityMatrixMiner"); // Ivy
+		add("LogAbstractions", "CausalActivityMatrixMiner"); // Ivy
+		add("Log", "CausalActivityMatrixMiner"); // Ivy
+		add("Saxon", "CausalActivityMatrixMiner"); // Ivy
+		add("Widgets", "CausalActivityMatrixMiner"); // Ivy
+		add("BasicUtils", "ChangeTree"); // Packagelib
+		add("LogAbstractions", "ChangeTree"); // Packagelib
+		add("Log", "ChangeTree"); // Packagelib
+		add("Widgets", "ChangeTree"); // Packagelib
+		add("BasicUtils", "ChangeVisualization"); // Packagelib
+		add("Log", "ChangeVisualization"); // Packagelib
+		add("PNetReplayer", "ChristianStevandy"); // Packagelib
+		add("SimpleLogOperations", "ChristianStevandy"); // Packagelib
+		add("AcceptingPetriNet", "ChristianStevandy"); // Ivy
+		add("AlphaMiner", "ChristianStevandy"); // Ivy
+		add("ApacheUtils", "ChristianStevandy"); // Ivy
+		add("BasicUtils", "ChristianStevandy"); // Ivy
+		add("Daikon", "ChristianStevandy"); // Ivy
+		add("DataAwareReplayer", "ChristianStevandy"); // Ivy
+		add("DataPetriNets", "ChristianStevandy"); // Ivy
+		add("EfficientStorage", "ChristianStevandy"); // Ivy
+		add("EvolutionaryTreeMiner", "ChristianStevandy"); // Ivy
+		add("GraphViz", "ChristianStevandy"); // Ivy
+		add("InductiveMiner", "ChristianStevandy"); // Ivy
+		add("InductiveVisualMiner", "ChristianStevandy"); // Ivy
+		add("LogAbstractions", "ChristianStevandy"); // Ivy
+		add("LogEnhancement", "ChristianStevandy"); // Ivy
+		add("Log", "ChristianStevandy"); // Ivy
+		add("LpSolve", "ChristianStevandy"); // Ivy
+		add("PetriNets", "ChristianStevandy"); // Ivy
+		add("PNetReplayer", "ChristianStevandy"); // Ivy
+		add("ProcessTree", "ChristianStevandy"); // Ivy
+		add("Properties", "ChristianStevandy"); // Ivy
+		add("PTMerge", "ChristianStevandy"); // Ivy
+		add("Saxon", "ChristianStevandy"); // Ivy
+		add("Widgets", "ChristianStevandy"); // Ivy
+		add("XESAlignmentExtension", "ChristianStevandy"); // Ivy
+		add("XESLite", "ChristianStevandy"); // Ivy
+		add("ApacheUtils", "CNet"); // Ivy
+		add("BasicUtils", "CNet"); // Ivy
+		add("DataExpression", "CNet"); // Ivy
+		add("GraphViz", "CNet"); // Ivy
+		add("Log", "CNet"); // Ivy
+		add("Saxon", "CNet"); // Ivy
+		add("Widgets", "CNet"); // Ivy
+		add("BasicUtils", "CNetReplayer"); // Packagelib
+		add("CNet", "CNetReplayer"); // Packagelib
+		add("EfficientStorage", "CNetReplayer"); // Packagelib
+		add("LogDialog", "CNetReplayer"); // Packagelib
+		add("Log", "CNetReplayer"); // Packagelib
+		add("PetriNets", "CNetReplayer"); // Packagelib
+		add("PNetReplayer", "CNetReplayer"); // Packagelib
+		add("Widgets", "CNetReplayer"); // Packagelib
+		add("ApacheUtils", "ComparisonFramework"); // Packagelib
+		add("BasicUtils", "ComparisonFramework"); // Packagelib
+		add("EfficientStorage", "ComparisonFramework"); // Packagelib
+		add("EvolutionaryTreeMiner", "ComparisonFramework"); // Packagelib
+		add("InteractiveVisualization", "ComparisonFramework"); // Packagelib
+		add("LogDialog", "ComparisonFramework"); // Packagelib
+		add("Log", "ComparisonFramework"); // Packagelib
+		add("ProcessTree", "ComparisonFramework"); // Packagelib
+		add("Properties", "ComparisonFramework"); // Packagelib
+		add("SocialNetwork", "ComparisonFramework"); // Packagelib
+		add("Widgets", "ComparisonFramework"); // Packagelib
+		add("ApacheUtils", "Compliance"); // Packagelib
+		add("BasicUtils", "Compliance"); // Packagelib
+		add("DataAwareReplayer", "Compliance"); // Packagelib
+		add("DataExpression", "Compliance"); // Packagelib
+		add("DataPetriNets", "Compliance"); // Packagelib
+		add("EfficientStorage", "Compliance"); // Packagelib
+		add("Log", "Compliance"); // Packagelib
+		add("LpSolve", "Compliance"); // Packagelib
+		add("PetriNets", "Compliance"); // Packagelib
+		add("PNetReplayer", "Compliance"); // Packagelib
+		add("Widgets", "Compliance"); // Packagelib
+		add("ApacheUtils", "ComplianceFramework"); // Packagelib
+		add("BasicUtils", "ComplianceFramework"); // Packagelib
+		add("Compliance", "ComplianceFramework"); // Packagelib
+		add("Daikon", "ComplianceFramework"); // Packagelib
+		add("DataAwareReplayer", "ComplianceFramework"); // Packagelib
+		add("DataPetriNets", "ComplianceFramework"); // Packagelib
+		add("EfficientStorage", "ComplianceFramework"); // Packagelib
+		add("GraphViz", "ComplianceFramework"); // Packagelib
+		add("Log", "ComplianceFramework"); // Packagelib
+		add("PetriNets", "ComplianceFramework"); // Packagelib
+		add("PNetAlignmentAnalysis", "ComplianceFramework"); // Packagelib
+		add("PNetReplayer", "ComplianceFramework"); // Packagelib
+		add("Widgets", "ComplianceFramework"); // Packagelib
+		add("Log", "ConceptDrift"); // Packagelib
+		add("ApacheUtils", "ConfigurableProcesses"); // Ivy
+		add("BasicUtils", "ConfigurableProcesses"); // Ivy
+		add("EfficientStorage", "ConfigurableProcesses"); // Ivy
+		add("EvolutionaryTreeMiner", "ConfigurableProcesses"); // Ivy
+		add("InductiveMiner", "ConfigurableProcesses"); // Ivy
+		add("Log", "ConfigurableProcesses"); // Ivy
+		add("LpSolve", "ConfigurableProcesses"); // Ivy
+		add("PetriNets", "ConfigurableProcesses"); // Ivy
+		add("PNetReplayer", "ConfigurableProcesses"); // Ivy
+		add("ProcessTree", "ConfigurableProcesses"); // Ivy
+		add("Properties", "ConfigurableProcesses"); // Ivy
+		add("PTMerge", "ConfigurableProcesses"); // Ivy
+		add("Saxon", "ConfigurableProcesses"); // Ivy
+		add("Widgets", "ConfigurableProcesses"); // Ivy
+		add("AcceptingPetriNetClassicalReductor", "CongLiu"); // Ivy
+		add("AcceptingPetriNetDecomposer", "CongLiu"); // Ivy
+		add("AcceptingPetriNet", "CongLiu"); // Ivy
+		add("AcceptingPetriNetMiner", "CongLiu"); // Ivy
+		add("AcceptingPetriNetRedundantPlacesReductor", "CongLiu"); // Ivy
+		add("ActivityClusterArrayCreator", "CongLiu"); // Ivy
+		add("ActivityClusterArrayExtractor", "CongLiu"); // Ivy
+		add("ActivityClusterArray", "CongLiu"); // Ivy
+		add("AlphaMiner", "CongLiu"); // Ivy
+		add("ApacheUtils", "CongLiu"); // Ivy
+		add("BasicUtils", "CongLiu"); // Ivy
+		add("CausalActivityGraphCreator", "CongLiu"); // Ivy
+		add("CausalActivityGraph", "CongLiu"); // Ivy
+		add("CausalActivityMatrixCreator", "CongLiu"); // Ivy
+		add("CausalActivityMatrix", "CongLiu"); // Ivy
+		add("CausalActivityMatrixMiner", "CongLiu"); // Ivy
+		add("CNet", "CongLiu"); // Ivy
+		add("CNetReplayer", "CongLiu"); // Ivy
+		add("CSVImporter", "CongLiu"); // Ivy
+		add("DataAwareReplayer", "CongLiu"); // Ivy
+		add("DataExpression", "CongLiu"); // Ivy
+		add("DataPetriNets", "CongLiu"); // Ivy
+		add("DecomposedMiner", "CongLiu"); // Ivy
+		add("DecomposedReplayer", "CongLiu"); // Ivy
+		add("DivideAndConquer", "CongLiu"); // Ivy
+		add("EfficientStorage", "CongLiu"); // Ivy
+		add("ETConformance", "CongLiu"); // Ivy
+		add("EvolutionaryTreeMiner", "CongLiu"); // Ivy
+		add("Flex", "CongLiu"); // Ivy
+		add("Fuzzy", "CongLiu"); // Ivy
+		add("GraphVisualizers", "CongLiu"); // Ivy
+		add("GraphViz", "CongLiu"); // Ivy
+		add("HeuristicsMiner", "CongLiu"); // Ivy
+		add("HybridILPMiner", "CongLiu"); // Ivy
+		add("ILPMiner", "CongLiu"); // Ivy
+		add("InductiveMiner", "CongLiu"); // Ivy
+		add("InductiveVisualMiner", "CongLiu"); // Ivy
+		add("InteractiveVisualization", "CongLiu"); // Ivy
+		add("LogAbstractions", "CongLiu"); // Ivy
+		add("LogAlignment", "CongLiu"); // Ivy
+		add("LogDecomposer", "CongLiu"); // Ivy
+		add("LogDialog", "CongLiu"); // Ivy
+		add("Log", "CongLiu"); // Ivy
+		add("LogMerge", "CongLiu"); // Ivy
+		add("LPEngine", "CongLiu"); // Ivy
+		add("LpSolve", "CongLiu"); // Ivy
+		add("Murata", "CongLiu"); // Ivy
+		add("PetriNets", "CongLiu"); // Ivy
+		add("PNAnalysis", "CongLiu"); // Ivy
+		add("PNetAlignmentAnalysis", "CongLiu"); // Ivy
+		add("PNetReplayer", "CongLiu"); // Ivy
+		add("ProcessLogGenerator", "CongLiu"); // Ivy
+		add("ProcessTree", "CongLiu"); // Ivy
+		add("Properties", "CongLiu"); // Ivy
+		add("PTMerge", "CongLiu"); // Ivy
+		add("Saxon", "CongLiu"); // Ivy
+		add("TransitionSystems", "CongLiu"); // Ivy
+		add("Widgets", "CongLiu"); // Ivy
+		add("XESAlignmentExtension", "CongLiu"); // Ivy
+		add("XESLite", "CongLiu"); // Ivy
+		add("BasicUtils", "ContextDottedChart"); // Packagelib
+		add("Log", "ContextDottedChart"); // Packagelib
+		add("Widgets", "ContextDottedChart"); // Packagelib
+		add("Murata", "COSAImportExport"); // Packagelib
+		add("PetriNets", "COSAImportExport"); // Packagelib
+		add("CPNet", "Cosimulation"); // Packagelib
+		add("EMF", "Cosimulation"); // Packagelib
+		add("Log", "Cosimulation"); // Packagelib
+		add("Widgets", "Cosimulation"); // Packagelib
+		add("ApacheUtils", "CostBasedAnalysis"); // Ivy
+		add("BasicUtils", "CostBasedAnalysis"); // Ivy
+		add("Log", "CostBasedAnalysis"); // Ivy
+		add("PetriNets", "CostBasedAnalysis"); // Ivy
+		add("Saxon", "CostBasedAnalysis"); // Ivy
+		add("Widgets", "CostBasedAnalysis"); // Ivy
+		add("ApacheUtils", "CostOptimization"); // Packagelib
+		add("BasicUtils", "CostOptimization"); // Packagelib
+		add("Log", "CostOptimization"); // Packagelib
+		add("Widgets", "CostOptimization"); // Packagelib
+		add("ApacheUtils", "CPNet"); // Ivy
+		add("BasicUtils", "CPNet"); // Ivy
+		add("EMF", "CPNet"); // Ivy
+		add("Log", "CPNet"); // Ivy
+		add("PetriNets", "CPNet"); // Ivy
+		add("Saxon", "CPNet"); // Ivy
+		add("Widgets", "CPNet"); // Ivy
+		add("ApacheUtils", "CrossOrgProcMin"); // Ivy
+		add("BasicUtils", "CrossOrgProcMin"); // Ivy
+		add("BPMN", "CrossOrgProcMin"); // Ivy
+		add("EfficientStorage", "CrossOrgProcMin"); // Ivy
+		add("InductiveMiner", "CrossOrgProcMin"); // Ivy
+		add("Log", "CrossOrgProcMin"); // Ivy
+		add("PetriNets", "CrossOrgProcMin"); // Ivy
+		add("PNetAlignmentAnalysis", "CrossOrgProcMin"); // Ivy
+		add("PNetReplayer", "CrossOrgProcMin"); // Ivy
+		add("ProcessTree", "CrossOrgProcMin"); // Ivy
+		add("Properties", "CrossOrgProcMin"); // Ivy
+		add("Saxon", "CrossOrgProcMin"); // Ivy
+		add("Widgets", "CrossOrgProcMin"); // Ivy
+		add("ApacheUtils", "CSMMiner"); // Ivy
+		add("BasicUtils", "CSMMiner"); // Ivy
+		add("Log", "CSMMiner"); // Ivy
+		add("Saxon", "CSMMiner"); // Ivy
+		add("TransitionSystems", "CSMMiner"); // Ivy
+		add("Widgets", "CSMMiner"); // Ivy
+		add("XESLite", "CSMMiner"); // Ivy
+		add("ApacheUtils", "CSVImporter"); // Packagelib
+		add("BasicUtils", "CSVImporter"); // Packagelib
+		add("Log", "CSVImporter"); // Packagelib
+		add("Widgets", "CSVImporter"); // Packagelib
+		add("ApacheUtils", "Daikon"); // Ivy
+		add("BasicUtils", "Daikon"); // Ivy
+		add("Log", "Daikon"); // Ivy
+		add("Saxon", "Daikon"); // Ivy
+		add("Widgets", "Daikon"); // Ivy
+		add("ApacheUtils", "DataAwareCNetMiner"); // Ivy
+		add("BasicUtils", "DataAwareCNetMiner"); // Ivy
+		add("CNet", "DataAwareCNetMiner"); // Ivy
+		add("DataDiscovery", "DataAwareCNetMiner"); // Ivy
+		add("DataExpression", "DataAwareCNetMiner"); // Ivy
+		add("DataPetriNets", "DataAwareCNetMiner"); // Ivy
+		add("EfficientStorage", "DataAwareCNetMiner"); // Ivy
+		add("GraphViz", "DataAwareCNetMiner"); // Ivy
+		add("Log", "DataAwareCNetMiner"); // Ivy
+		add("LpSolve", "DataAwareCNetMiner"); // Ivy
+		add("PetriNets", "DataAwareCNetMiner"); // Ivy
+		add("PNetReplayer", "DataAwareCNetMiner"); // Ivy
+		add("Saxon", "DataAwareCNetMiner"); // Ivy
+		add("Widgets", "DataAwareCNetMiner"); // Ivy
+		add("BasicUtils", "DataAwareDeclareMiner"); // Packagelib
+		add("DataPetriNets", "DataAwareDeclareMiner"); // Packagelib
+		add("DeclareMiner", "DataAwareDeclareMiner"); // Packagelib
+		add("DeclareMinerVisualizer", "DataAwareDeclareMiner"); // Packagelib
+		add("DeclareVisualizer", "DataAwareDeclareMiner"); // Packagelib
+		add("Log", "DataAwareDeclareMiner"); // Packagelib
+		add("LTL2Automaton", "DataAwareDeclareMiner"); // Packagelib
+		add("Widgets", "DataAwareDeclareMiner"); // Packagelib
+		add("ApacheUtils", "DataAwareExplorer"); // Ivy
+		add("BasicUtils", "DataAwareExplorer"); // Ivy
+		add("CNet", "DataAwareExplorer"); // Ivy
+		add("CNetReplayer", "DataAwareExplorer"); // Ivy
+		add("DataAwareReplayer", "DataAwareExplorer"); // Ivy
+		add("DataDiscovery", "DataAwareExplorer"); // Ivy
+		add("DataExpression", "DataAwareExplorer"); // Ivy
+		add("DataPetriNets", "DataAwareExplorer"); // Ivy
+		add("EfficientStorage", "DataAwareExplorer"); // Ivy
+		add("GraphViz", "DataAwareExplorer"); // Ivy
+		add("LogEnhancement", "DataAwareExplorer"); // Ivy
+		add("Log", "DataAwareExplorer"); // Ivy
+		add("LpSolve", "DataAwareExplorer"); // Ivy
+		add("PetriNets", "DataAwareExplorer"); // Ivy
+		add("PNetReplayer", "DataAwareExplorer"); // Ivy
+		add("Saxon", "DataAwareExplorer"); // Ivy
+		add("Widgets", "DataAwareExplorer"); // Ivy
+		add("XESAlignmentExtension", "DataAwareExplorer"); // Ivy
+		add("XESLite", "DataAwareExplorer"); // Ivy
+		add("ApacheUtils", "DataAwareReplayer"); // Ivy
+		add("BasicUtils", "DataAwareReplayer"); // Ivy
+		add("CNet", "DataAwareReplayer"); // Ivy
+		add("CNetReplayer", "DataAwareReplayer"); // Ivy
+		add("DataExpression", "DataAwareReplayer"); // Ivy
+		add("DataPetriNets", "DataAwareReplayer"); // Ivy
+		add("EfficientStorage", "DataAwareReplayer"); // Ivy
+		add("GraphViz", "DataAwareReplayer"); // Ivy
+		add("Log", "DataAwareReplayer"); // Ivy
+		add("LpSolve", "DataAwareReplayer"); // Ivy
+		add("PetriNets", "DataAwareReplayer"); // Ivy
+		add("PNetReplayer", "DataAwareReplayer"); // Ivy
+		add("Saxon", "DataAwareReplayer"); // Ivy
+		add("Widgets", "DataAwareReplayer"); // Ivy
+		add("XESAlignmentExtension", "DataAwareReplayer"); // Ivy
+		add("XESLite", "DataAwareReplayer"); // Ivy
+		add("ApacheUtils", "DatabaseInductiveMiner"); // Ivy
+		add("BasicUtils", "DatabaseInductiveMiner"); // Ivy
+		add("InductiveMiner", "DatabaseInductiveMiner"); // Ivy
+		add("Log", "DatabaseInductiveMiner"); // Ivy
+		add("PetriNets", "DatabaseInductiveMiner"); // Ivy
+		add("PNetReplayer", "DatabaseInductiveMiner"); // Ivy
+		add("ProcessTree", "DatabaseInductiveMiner"); // Ivy
+		add("Properties", "DatabaseInductiveMiner"); // Ivy
+		add("Saxon", "DatabaseInductiveMiner"); // Ivy
+		add("Widgets", "DatabaseInductiveMiner"); // Ivy
+		add("XESLite", "DatabaseInductiveMiner"); // Ivy
+		add("ApacheUtils", "DataDiscovery"); // Ivy
+		add("BasicUtils", "DataDiscovery"); // Ivy
+		add("DataExpression", "DataDiscovery"); // Ivy
+		add("DataPetriNets", "DataDiscovery"); // Ivy
+		add("EfficientStorage", "DataDiscovery"); // Ivy
+		add("GraphViz", "DataDiscovery"); // Ivy
+		add("Log", "DataDiscovery"); // Ivy
+		add("LpSolve", "DataDiscovery"); // Ivy
+		add("PetriNets", "DataDiscovery"); // Ivy
+		add("PNetReplayer", "DataDiscovery"); // Ivy
+		add("Saxon", "DataDiscovery"); // Ivy
+		add("Widgets", "DataDiscovery"); // Ivy
+		add("ApacheUtils", "DataPetriNets"); // Ivy
+		add("BasicUtils", "DataPetriNets"); // Ivy
+		add("DataExpression", "DataPetriNets"); // Ivy
+		add("EfficientStorage", "DataPetriNets"); // Ivy
+		add("GraphViz", "DataPetriNets"); // Ivy
+		add("Log", "DataPetriNets"); // Ivy
+		add("LpSolve", "DataPetriNets"); // Ivy
+		add("PetriNets", "DataPetriNets"); // Ivy
+		add("PNetReplayer", "DataPetriNets"); // Ivy
+		add("Saxon", "DataPetriNets"); // Ivy
+		add("Widgets", "DataPetriNets"); // Ivy
+		add("ApacheUtils", "DeclareAnalyzer"); // Packagelib
+		add("DataAwareDeclareMiner", "DeclareAnalyzer"); // Packagelib
+		add("DeclareMiner", "DeclareAnalyzer"); // Packagelib
+		add("DeclareMinerVisualizer", "DeclareAnalyzer"); // Packagelib
+		add("DeclareVisualizer", "DeclareAnalyzer"); // Packagelib
+		add("Log", "DeclareAnalyzer"); // Packagelib
+		add("LTL2Automaton", "DeclareAnalyzer"); // Packagelib
+		add("Widgets", "DeclareAnalyzer"); // Packagelib
+		add("BasicUtils", "DeclareChecker"); // Packagelib
+		add("DataAwareReplayer", "DeclareChecker"); // Packagelib
+		add("DataPetriNets", "DeclareChecker"); // Packagelib
+		add("DeclareMiner", "DeclareChecker"); // Packagelib
+		add("DeclareMinerVisualizer", "DeclareChecker"); // Packagelib
+		add("DeclareVisualizer", "DeclareChecker"); // Packagelib
+		add("EfficientStorage", "DeclareChecker"); // Packagelib
+		add("Log", "DeclareChecker"); // Packagelib
+		add("LTL2Automaton", "DeclareChecker"); // Packagelib
+		add("PetriNets", "DeclareChecker"); // Packagelib
+		add("PNetReplayer", "DeclareChecker"); // Packagelib
+		add("Widgets", "DeclareChecker"); // Packagelib
+		add("BasicUtils", "DeclareMiner"); // Packagelib
+		add("DeclareMinerVisualizer", "DeclareMiner"); // Packagelib
+		add("DeclareVisualizer", "DeclareMiner"); // Packagelib
+		add("Log", "DeclareMiner"); // Packagelib
+		add("LTL2Automaton", "DeclareMiner"); // Packagelib
+		add("LTLChecker", "DeclareMiner"); // Packagelib
+		add("Widgets", "DeclareMiner"); // Packagelib
+		add("ApacheUtils", "DeclareMinerFul"); // Packagelib
+		add("BasicUtils", "DeclareMinerFul"); // Packagelib
+		add("DeclareMinerVisualizer", "DeclareMinerFul"); // Packagelib
+		add("DeclareVisualizer", "DeclareMinerFul"); // Packagelib
+		add("Log", "DeclareMinerFul"); // Packagelib
+		add("Widgets", "DeclareMinerFul"); // Packagelib
+		add("XESLite", "DeclareMinerFul"); // Packagelib
+		add("BasicUtils", "DeclareMinerVisualizer"); // Packagelib
+		add("DeclareVisualizer", "DeclareMinerVisualizer"); // Packagelib
+		add("Log", "DeclareMinerVisualizer"); // Packagelib
+		add("LTL2Automaton", "DeclareMinerVisualizer"); // Packagelib
+		add("Widgets", "DeclareMinerVisualizer"); // Packagelib
+		add("BasicUtils", "DeclareVisualizer"); // Packagelib
+		add("Log", "DeclareVisualizer"); // Packagelib
+		add("LTL2Automaton", "DeclareVisualizer"); // Packagelib
+		add("Widgets", "DeclareVisualizer"); // Packagelib
+		add("AcceptingPetriNetClassicalReductor", "DecomposedMiner"); // Ivy
+		add("AcceptingPetriNet", "DecomposedMiner"); // Ivy
+		add("AcceptingPetriNetMiner", "DecomposedMiner"); // Ivy
+		add("AcceptingPetriNetRedundantPlacesReductor", "DecomposedMiner"); // Ivy
+		add("ActivityClusterArrayCreator", "DecomposedMiner"); // Ivy
+		add("ActivityClusterArray", "DecomposedMiner"); // Ivy
+		add("AlphaMiner", "DecomposedMiner"); // Ivy
+		add("ApacheUtils", "DecomposedMiner"); // Ivy
+		add("BasicUtils", "DecomposedMiner"); // Ivy
+		add("CausalActivityGraphCreator", "DecomposedMiner"); // Ivy
+		add("CausalActivityGraph", "DecomposedMiner"); // Ivy
+		add("CausalActivityMatrix", "DecomposedMiner"); // Ivy
+		add("CausalActivityMatrixMiner", "DecomposedMiner"); // Ivy
+		add("EfficientStorage", "DecomposedMiner"); // Ivy
+		add("ETConformance", "DecomposedMiner"); // Ivy
+		add("EvolutionaryTreeMiner", "DecomposedMiner"); // Ivy
+		add("Flex", "DecomposedMiner"); // Ivy
+		add("Fuzzy", "DecomposedMiner"); // Ivy
+		add("GraphVisualizers", "DecomposedMiner"); // Ivy
+		add("GraphViz", "DecomposedMiner"); // Ivy
+		add("HeuristicsMiner", "DecomposedMiner"); // Ivy
+		add("HybridILPMiner", "DecomposedMiner"); // Ivy
+		add("ILPMiner", "DecomposedMiner"); // Ivy
+		add("InductiveMiner", "DecomposedMiner"); // Ivy
+		add("LogAbstractions", "DecomposedMiner"); // Ivy
+		add("LogDecomposer", "DecomposedMiner"); // Ivy
+		add("Log", "DecomposedMiner"); // Ivy
+		add("LPEngine", "DecomposedMiner"); // Ivy
+		add("LpSolve", "DecomposedMiner"); // Ivy
+		add("Murata", "DecomposedMiner"); // Ivy
+		add("PetriNets", "DecomposedMiner"); // Ivy
+		add("PNetAlignmentAnalysis", "DecomposedMiner"); // Ivy
+		add("PNetReplayer", "DecomposedMiner"); // Ivy
+		add("ProcessTree", "DecomposedMiner"); // Ivy
+		add("Properties", "DecomposedMiner"); // Ivy
+		add("PTMerge", "DecomposedMiner"); // Ivy
+		add("Saxon", "DecomposedMiner"); // Ivy
+		add("TransitionSystems", "DecomposedMiner"); // Ivy
+		add("Widgets", "DecomposedMiner"); // Ivy
+		add("AcceptingPetriNetDecomposer", "DecomposedReplayer"); // Ivy
+		add("AcceptingPetriNet", "DecomposedReplayer"); // Ivy
+		add("ActivityClusterArrayCreator", "DecomposedReplayer"); // Ivy
+		add("ActivityClusterArrayExtractor", "DecomposedReplayer"); // Ivy
+		add("ActivityClusterArray", "DecomposedReplayer"); // Ivy
+		add("ApacheUtils", "DecomposedReplayer"); // Ivy
+		add("BasicUtils", "DecomposedReplayer"); // Ivy
+		add("CausalActivityGraphCreator", "DecomposedReplayer"); // Ivy
+		add("CausalActivityGraph", "DecomposedReplayer"); // Ivy
+		add("CausalActivityMatrixCreator", "DecomposedReplayer"); // Ivy
+		add("CausalActivityMatrix", "DecomposedReplayer"); // Ivy
+		add("CausalActivityMatrixMiner", "DecomposedReplayer"); // Ivy
+		add("EfficientStorage", "DecomposedReplayer"); // Ivy
+		add("Fuzzy", "DecomposedReplayer"); // Ivy
+		add("GraphVisualizers", "DecomposedReplayer"); // Ivy
+		add("GraphViz", "DecomposedReplayer"); // Ivy
+		add("LogAbstractions", "DecomposedReplayer"); // Ivy
+		add("LogAlignment", "DecomposedReplayer"); // Ivy
+		add("LogDecomposer", "DecomposedReplayer"); // Ivy
+		add("Log", "DecomposedReplayer"); // Ivy
+		add("LPEngine", "DecomposedReplayer"); // Ivy
+		add("LpSolve", "DecomposedReplayer"); // Ivy
+		add("Murata", "DecomposedReplayer"); // Ivy
+		add("PetriNets", "DecomposedReplayer"); // Ivy
+		add("PNAnalysis", "DecomposedReplayer"); // Ivy
+		add("PNetAlignmentAnalysis", "DecomposedReplayer"); // Ivy
+		add("PNetReplayer", "DecomposedReplayer"); // Ivy
+		add("Saxon", "DecomposedReplayer"); // Ivy
+		add("TransitionSystems", "DecomposedReplayer"); // Ivy
+		add("Widgets", "DecomposedReplayer"); // Ivy
+		add("AlphaMiner", "DifferenceGraph"); // Packagelib
+		add("BasicUtils", "DifferenceGraph"); // Packagelib
+		add("HeuristicsMiner", "DifferenceGraph"); // Packagelib
+		add("LogAbstractions", "DifferenceGraph"); // Packagelib
+		add("Log", "DifferenceGraph"); // Packagelib
+		add("PetriNets", "DifferenceGraph"); // Packagelib
+		add("Widgets", "DifferenceGraph"); // Packagelib
+		add("AcceptingPetriNetClassicalReductor", "DivideAndConquer"); // Ivy
+		add("AcceptingPetriNetDecomposer", "DivideAndConquer"); // Ivy
+		add("AcceptingPetriNet", "DivideAndConquer"); // Ivy
+		add("AcceptingPetriNetMiner", "DivideAndConquer"); // Ivy
+		add("AcceptingPetriNetRedundantPlacesReductor", "DivideAndConquer"); // Ivy
+		add("ActivityClusterArrayCreator", "DivideAndConquer"); // Ivy
+		add("ActivityClusterArrayExtractor", "DivideAndConquer"); // Ivy
+		add("ActivityClusterArray", "DivideAndConquer"); // Ivy
+		add("AlphaMiner", "DivideAndConquer"); // Ivy
+		add("ApacheUtils", "DivideAndConquer"); // Ivy
+		add("BasicUtils", "DivideAndConquer"); // Ivy
+		add("CausalActivityGraphCreator", "DivideAndConquer"); // Ivy
+		add("CausalActivityGraph", "DivideAndConquer"); // Ivy
+		add("CausalActivityMatrixCreator", "DivideAndConquer"); // Ivy
+		add("CausalActivityMatrix", "DivideAndConquer"); // Ivy
+		add("CausalActivityMatrixMiner", "DivideAndConquer"); // Ivy
+		add("DecomposedMiner", "DivideAndConquer"); // Ivy
+		add("DecomposedReplayer", "DivideAndConquer"); // Ivy
+		add("EfficientStorage", "DivideAndConquer"); // Ivy
+		add("ETConformance", "DivideAndConquer"); // Ivy
+		add("EvolutionaryTreeMiner", "DivideAndConquer"); // Ivy
+		add("Flex", "DivideAndConquer"); // Ivy
+		add("Fuzzy", "DivideAndConquer"); // Ivy
+		add("GraphVisualizers", "DivideAndConquer"); // Ivy
+		add("GraphViz", "DivideAndConquer"); // Ivy
+		add("HeuristicsMiner", "DivideAndConquer"); // Ivy
+		add("HybridILPMiner", "DivideAndConquer"); // Ivy
+		add("ILPMiner", "DivideAndConquer"); // Ivy
+		add("InductiveMiner", "DivideAndConquer"); // Ivy
+		add("InteractiveVisualization", "DivideAndConquer"); // Ivy
+		add("LogAbstractions", "DivideAndConquer"); // Ivy
+		add("LogAlignment", "DivideAndConquer"); // Ivy
+		add("LogDecomposer", "DivideAndConquer"); // Ivy
+		add("LogDialog", "DivideAndConquer"); // Ivy
+		add("Log", "DivideAndConquer"); // Ivy
+		add("LPEngine", "DivideAndConquer"); // Ivy
+		add("LpSolve", "DivideAndConquer"); // Ivy
+		add("Murata", "DivideAndConquer"); // Ivy
+		add("PetriNets", "DivideAndConquer"); // Ivy
+		add("PNAnalysis", "DivideAndConquer"); // Ivy
+		add("PNetAlignmentAnalysis", "DivideAndConquer"); // Ivy
+		add("PNetReplayer", "DivideAndConquer"); // Ivy
+		add("ProcessTree", "DivideAndConquer"); // Ivy
+		add("Properties", "DivideAndConquer"); // Ivy
+		add("PTMerge", "DivideAndConquer"); // Ivy
+		add("Saxon", "DivideAndConquer"); // Ivy
+		add("TransitionSystems", "DivideAndConquer"); // Ivy
+		add("Widgets", "DivideAndConquer"); // Ivy
+		add("AcceptingPetriNetClassicalReductor", "DivideAndConquerTest"); // Packagelib
+		add("AcceptingPetriNet", "DivideAndConquerTest"); // Packagelib
+		add("AcceptingPetriNetMiner", "DivideAndConquerTest"); // Packagelib
+		add("AcceptingPetriNetRedundantPlacesReductor", "DivideAndConquerTest"); // Packagelib
+		add("ActivityClusterArrayCreator", "DivideAndConquerTest"); // Packagelib
+		add("ActivityClusterArray", "DivideAndConquerTest"); // Packagelib
+		add("BasicUtils", "DivideAndConquerTest"); // Packagelib
+		add("CausalActivityGraphCreator", "DivideAndConquerTest"); // Packagelib
+		add("CausalActivityGraph", "DivideAndConquerTest"); // Packagelib
+		add("CausalActivityMatrixCreator", "DivideAndConquerTest"); // Packagelib
+		add("CausalActivityMatrix", "DivideAndConquerTest"); // Packagelib
+		add("CausalActivityMatrixMiner", "DivideAndConquerTest"); // Packagelib
+		add("DecomposedMiner", "DivideAndConquerTest"); // Packagelib
+		add("DecomposedReplayer", "DivideAndConquerTest"); // Packagelib
+		add("LogDecomposer", "DivideAndConquerTest"); // Packagelib
+		add("Log", "DivideAndConquerTest"); // Packagelib
+		add("PetriNets", "DivideAndConquerTest"); // Packagelib
+		add("PNAnalysis", "DivideAndConquerTest"); // Packagelib
+		add("PNetAlignmentAnalysis", "DivideAndConquerTest"); // Packagelib
+		add("PNetReplayer", "DivideAndConquerTest"); // Packagelib
+		add("Log", "DottedChart"); // Packagelib
+		add("InteractiveVisualization", "DottedChart2"); // Packagelib
+		add("Log", "DottedChart2"); // Packagelib
+		add("BasicUtils", "EfficientStorage"); // Packagelib
+		add("LpSolve", "EfficientStorage"); // Packagelib
+		add("Log", "EPC"); // Packagelib
+		add("Widgets", "EPC"); // Packagelib
+		add("EPC", "EPCConversion"); // Packagelib
+		add("Murata", "EPCConversion"); // Packagelib
+		add("PetriNets", "EPCConversion"); // Packagelib
+		add("BasicUtils", "EpisodeMiner"); // Packagelib
+		add("Log", "EpisodeMiner"); // Packagelib
+		add("ApacheUtils", "EpisodeMiner"); // Ivy
+		add("BasicUtils", "EpisodeMiner"); // Ivy
+		add("Log", "EpisodeMiner"); // Ivy
+		add("Saxon", "EpisodeMiner"); // Ivy
+		add("Widgets", "EpisodeMiner"); // Ivy
+		add("BasicUtils", "ETConformance"); // Packagelib
+		add("EfficientStorage", "ETConformance"); // Packagelib
+		add("Log", "ETConformance"); // Packagelib
+		add("PetriNets", "ETConformance"); // Packagelib
+		add("PNAnalysis", "ETConformance"); // Packagelib
+		add("PNetReplayer", "ETConformance"); // Packagelib
+		add("TransitionSystems", "ETConformance"); // Packagelib
+		add("Widgets", "ETConformance"); // Packagelib
+		add("ApacheUtils", "Event2ActivityMatcher"); // Packagelib
+		add("BasicUtils", "Event2ActivityMatcher"); // Packagelib
+		add("BPConformance", "Event2ActivityMatcher"); // Packagelib
+		add("CPNet", "Event2ActivityMatcher"); // Packagelib
+		add("EfficientStorage", "Event2ActivityMatcher"); // Packagelib
+		add("EMF", "Event2ActivityMatcher"); // Packagelib
+		add("Fuzzy", "Event2ActivityMatcher"); // Packagelib
+		add("Log", "Event2ActivityMatcher"); // Packagelib
+		add("LTLChecker", "Event2ActivityMatcher"); // Packagelib
+		add("PetriNets", "Event2ActivityMatcher"); // Packagelib
+		add("PNetReplayer", "Event2ActivityMatcher"); // Packagelib
+		add("StochasticPetriNets", "Event2ActivityMatcher"); // Packagelib
+		add("Widgets", "Event2ActivityMatcher"); // Packagelib
+		add("BasicUtils", "EventGapAnalysis"); // Packagelib
+		add("EfficientStorage", "EventGapAnalysis"); // Packagelib
+		add("Log", "EventGapAnalysis"); // Packagelib
+		add("Widgets", "EventGapAnalysis"); // Packagelib
+		add("ApacheUtils", "EventRevision"); // Ivy
+		add("BasicUtils", "EventRevision"); // Ivy
+		add("Log", "EventRevision"); // Ivy
+		add("Saxon", "EventRevision"); // Ivy
+		add("Widgets", "EventRevision"); // Ivy
+		add("AcceptingPetriNet", "EventStream"); // Ivy
+		add("ApacheUtils", "EventStream"); // Ivy
+		add("BasicUtils", "EventStream"); // Ivy
+		add("CPNet", "EventStream"); // Ivy
+		add("EMF", "EventStream"); // Ivy
+		add("LogAbstractions", "EventStream"); // Ivy
+		add("Log", "EventStream"); // Ivy
+		add("PetriNets", "EventStream"); // Ivy
+		add("ProcessTree", "EventStream"); // Ivy
+		add("Saxon", "EventStream"); // Ivy
+		add("Stream", "EventStream"); // Ivy
+		add("Widgets", "EventStream"); // Ivy
+		add("ApacheUtils", "EvolutionaryTreeMiner"); // Ivy
+		add("BasicUtils", "EvolutionaryTreeMiner"); // Ivy
+		add("EfficientStorage", "EvolutionaryTreeMiner"); // Ivy
+		add("InductiveMiner", "EvolutionaryTreeMiner"); // Ivy
+		add("Log", "EvolutionaryTreeMiner"); // Ivy
+		add("LpSolve", "EvolutionaryTreeMiner"); // Ivy
+		add("PetriNets", "EvolutionaryTreeMiner"); // Ivy
+		add("PNetReplayer", "EvolutionaryTreeMiner"); // Ivy
+		add("ProcessTree", "EvolutionaryTreeMiner"); // Ivy
+		add("Properties", "EvolutionaryTreeMiner"); // Ivy
+		add("PTMerge", "EvolutionaryTreeMiner"); // Ivy
+		add("Saxon", "EvolutionaryTreeMiner"); // Ivy
+		add("Widgets", "EvolutionaryTreeMiner"); // Ivy
+		add("PNetReplayer", "FeaturePrediction"); // Packagelib
+		add("ApacheUtils", "FeaturePrediction"); // Ivy
+		add("BasicUtils", "FeaturePrediction"); // Ivy
+		add("DataAwareReplayer", "FeaturePrediction"); // Ivy
+		add("DataPetriNets", "FeaturePrediction"); // Ivy
+		add("EfficientStorage", "FeaturePrediction"); // Ivy
+		add("GraphViz", "FeaturePrediction"); // Ivy
+		add("Log", "FeaturePrediction"); // Ivy
+		add("PetriNets", "FeaturePrediction"); // Ivy
+		add("Saxon", "FeaturePrediction"); // Ivy
+		add("Widgets", "FeaturePrediction"); // Ivy
+		add("XESAlignmentExtension", "FeaturePrediction"); // Ivy
+		add("XESLite", "FeaturePrediction"); // Ivy
+		add("BasicUtils", "FeedbackRepair"); // Packagelib
+		add("HeuristicsMiner", "FeedbackRepair"); // Packagelib
+		add("Log", "FeedbackRepair"); // Packagelib
+		add("Widgets", "FeedbackRepair"); // Packagelib
+		add("LogDialog", "Flex"); // Packagelib
+		add("Log", "Flex"); // Packagelib
+		add("Performance", "Flex"); // Packagelib
+		add("PetriNets", "Flex"); // Packagelib
+		add("Widgets", "Flex"); // Packagelib
+		add("BasicUtils", "FlexReplayer"); // Packagelib
+		add("Flex", "FlexReplayer"); // Packagelib
+		add("LogDialog", "FlexReplayer"); // Packagelib
+		add("Log", "FlexReplayer"); // Packagelib
+		add("PetriNets", "FlexReplayer"); // Packagelib
+		add("PNAnalysis", "FlexReplayer"); // Packagelib
+		add("PNetReplayer", "FlexReplayer"); // Packagelib
+		add("Widgets", "FlexReplayer"); // Packagelib
+		add("YAWL", "FlexReplayer"); // Packagelib
+		add("Animation", "Fuzzy"); // Packagelib
+		add("BasicUtils", "Fuzzy"); // Packagelib
+		add("LogAbstractions", "Fuzzy"); // Packagelib
+		add("Log", "Fuzzy"); // Packagelib
+		add("Widgets", "Fuzzy"); // Packagelib
+		add("ModelRepair", "GeneralizedConformance"); // Packagelib
+		add("StochasticPetriNets", "GeneralizedConformance"); // Packagelib
+		add("ApacheUtils", "GeneralizedConformance"); // Ivy
+		add("BasicUtils", "GeneralizedConformance"); // Ivy
+		add("BPMN", "GeneralizedConformance"); // Ivy
+		add("EfficientStorage", "GeneralizedConformance"); // Ivy
+		add("EPC", "GeneralizedConformance"); // Ivy
+		add("EvolutionaryTreeMiner", "GeneralizedConformance"); // Ivy
+		add("ILPMiner", "GeneralizedConformance"); // Ivy
+		add("InductiveMiner", "GeneralizedConformance"); // Ivy
+		add("Log", "GeneralizedConformance"); // Ivy
+		add("LPEngine", "GeneralizedConformance"); // Ivy
+		add("LpSolve", "GeneralizedConformance"); // Ivy
+		add("ModelRepair", "GeneralizedConformance"); // Ivy
+		add("PetriNets", "GeneralizedConformance"); // Ivy
+		add("PNetAlignmentAnalysis", "GeneralizedConformance"); // Ivy
+		add("PNetReplayer", "GeneralizedConformance"); // Ivy
+		add("ProcessTree", "GeneralizedConformance"); // Ivy
+		add("Properties", "GeneralizedConformance"); // Ivy
+		add("PTConversions", "GeneralizedConformance"); // Ivy
+		add("PTMerge", "GeneralizedConformance"); // Ivy
+		add("Saxon", "GeneralizedConformance"); // Ivy
+		add("StochasticPetriNets", "GeneralizedConformance"); // Ivy
+		add("TransitionSystems", "GeneralizedConformance"); // Ivy
+		add("Widgets", "GeneralizedConformance"); // Ivy
+		add("XESLite", "GeneralizedConformance"); // Ivy
+		add("YAWL", "GeneralizedConformance"); // Ivy
+		add("BasicUtils", "GPLv2Utils"); // Packagelib
+		add("AcceptingPetriNet", "GraphVisualizers"); // Ivy
+		add("ActivityClusterArray", "GraphVisualizers"); // Ivy
+		add("ApacheUtils", "GraphVisualizers"); // Ivy
+		add("BasicUtils", "GraphVisualizers"); // Ivy
+		add("CausalActivityGraph", "GraphVisualizers"); // Ivy
+		add("Fuzzy", "GraphVisualizers"); // Ivy
+		add("GraphViz", "GraphVisualizers"); // Ivy
+		add("Log", "GraphVisualizers"); // Ivy
+		add("PetriNets", "GraphVisualizers"); // Ivy
+		add("Saxon", "GraphVisualizers"); // Ivy
+		add("TransitionSystems", "GraphVisualizers"); // Ivy
+		add("Widgets", "GraphVisualizers"); // Ivy
+		add("ApacheUtils", "GraphViz"); // Ivy
+		add("Widgets", "GraphViz"); // Ivy
+		add("BasicUtils", "GuideTreeMiner"); // Packagelib
+		add("Log", "GuideTreeMiner"); // Packagelib
+		add("ApacheUtils", "Hadoop"); // Ivy
+		add("BasicUtils", "Hadoop"); // Ivy
+		add("BPMN", "Hadoop"); // Ivy
+		add("EPC", "Hadoop"); // Ivy
+		add("Flex", "Hadoop"); // Ivy
+		add("HeuristicsMiner", "Hadoop"); // Ivy
+		add("InductiveMiner", "Hadoop"); // Ivy
+		add("Log", "Hadoop"); // Ivy
+		add("PetriNets", "Hadoop"); // Ivy
+		add("PNetReplayer", "Hadoop"); // Ivy
+		add("ProcessTree", "Hadoop"); // Ivy
+		add("Properties", "Hadoop"); // Ivy
+		add("PTConversions", "Hadoop"); // Ivy
+		add("Saxon", "Hadoop"); // Ivy
+		add("Widgets", "Hadoop"); // Ivy
+		add("XESLite", "Hadoop"); // Ivy
+		add("YAWL", "Hadoop"); // Ivy
+		add("ApacheUtils", "HananeAriouat"); // Ivy
+		add("BasicUtils", "HananeAriouat"); // Ivy
+		add("Log", "HananeAriouat"); // Ivy
+		add("Saxon", "HananeAriouat"); // Ivy
+		add("Widgets", "HananeAriouat"); // Ivy
+		add("BasicUtils", "HeuristicsCNetMiner"); // Packagelib
+		add("Flex", "HeuristicsCNetMiner"); // Packagelib
+		add("HeuristicsMiner", "HeuristicsCNetMiner"); // Packagelib
+		add("Log", "HeuristicsCNetMiner"); // Packagelib
+		add("PetriNets", "HeuristicsCNetMiner"); // Packagelib
+		add("Widgets", "HeuristicsCNetMiner"); // Packagelib
+		add("ApacheUtils", "HeuristicsMiner"); // Ivy
+		add("BasicUtils", "HeuristicsMiner"); // Ivy
+		add("Log", "HeuristicsMiner"); // Ivy
+		add("PetriNets", "HeuristicsMiner"); // Ivy
+		add("Saxon", "HeuristicsMiner"); // Ivy
+		add("Widgets", "HeuristicsMiner"); // Ivy
+		add("ApacheUtils", "HistoryAwareConformanceChecking"); // Ivy
+		add("BasicUtils", "HistoryAwareConformanceChecking"); // Ivy
+		add("DataPetriNets", "HistoryAwareConformanceChecking"); // Ivy
+		add("EfficientStorage", "HistoryAwareConformanceChecking"); // Ivy
+		add("GraphViz", "HistoryAwareConformanceChecking"); // Ivy
+		add("Log", "HistoryAwareConformanceChecking"); // Ivy
+		add("PetriNets", "HistoryAwareConformanceChecking"); // Ivy
+		add("PNetReplayer", "HistoryAwareConformanceChecking"); // Ivy
+		add("Saxon", "HistoryAwareConformanceChecking"); // Ivy
+		add("Widgets", "HistoryAwareConformanceChecking"); // Ivy
+		add("XESAlignmentExtension", "HistoryAwareConformanceChecking"); // Ivy
+		add("AcceptingPetriNet", "HumbertoGarciaCaballero"); // Packagelib
+		add("PetriNets", "HumbertoGarciaCaballero"); // Packagelib
+		add("Woflan", "HumbertoGarciaCaballero"); // Packagelib
+		add("ApacheUtils", "HumbertoGarciaCaballero"); // Ivy
+		add("BasicUtils", "HumbertoGarciaCaballero"); // Ivy
+		add("Log", "HumbertoGarciaCaballero"); // Ivy
+		add("Saxon", "HumbertoGarciaCaballero"); // Ivy
+		add("Widgets", "HumbertoGarciaCaballero"); // Ivy
+		add("AcceptingPetriNet", "HybridILPMiner"); // Ivy
+		add("ActivityClusterArrayCreator", "HybridILPMiner"); // Ivy
+		add("ActivityClusterArray", "HybridILPMiner"); // Ivy
+		add("ApacheUtils", "HybridILPMiner"); // Ivy
+		add("BasicUtils", "HybridILPMiner"); // Ivy
+		add("CausalActivityGraphCreator", "HybridILPMiner"); // Ivy
+		add("CausalActivityGraph", "HybridILPMiner"); // Ivy
+		add("CausalActivityMatrix", "HybridILPMiner"); // Ivy
+		add("CausalActivityMatrixMiner", "HybridILPMiner"); // Ivy
+		add("EfficientStorage", "HybridILPMiner"); // Ivy
+		add("ETConformance", "HybridILPMiner"); // Ivy
+		add("Fuzzy", "HybridILPMiner"); // Ivy
+		add("GraphVisualizers", "HybridILPMiner"); // Ivy
+		add("GraphViz", "HybridILPMiner"); // Ivy
+		add("LogAbstractions", "HybridILPMiner"); // Ivy
+		add("Log", "HybridILPMiner"); // Ivy
+		add("LPEngine", "HybridILPMiner"); // Ivy
+		add("LpSolve", "HybridILPMiner"); // Ivy
+		add("Murata", "HybridILPMiner"); // Ivy
+		add("PetriNets", "HybridILPMiner"); // Ivy
+		add("PNetAlignmentAnalysis", "HybridILPMiner"); // Ivy
+		add("PNetReplayer", "HybridILPMiner"); // Ivy
+		add("ProcessTree", "HybridILPMiner"); // Ivy
+		add("Properties", "HybridILPMiner"); // Ivy
+		add("Saxon", "HybridILPMiner"); // Ivy
+		add("TransitionSystems", "HybridILPMiner"); // Ivy
+		add("Widgets", "HybridILPMiner"); // Ivy
+		add("BasicUtils", "ILPMiner"); // Packagelib
+		add("LogAbstractions", "ILPMiner"); // Packagelib
+		add("Log", "ILPMiner"); // Packagelib
+		add("PetriNets", "ILPMiner"); // Packagelib
+		add("ApacheUtils", "InductiveMiner"); // Ivy
+		add("BasicUtils", "InductiveMiner"); // Ivy
+		add("Log", "InductiveMiner"); // Ivy
+		add("PetriNets", "InductiveMiner"); // Ivy
+		add("PNetReplayer", "InductiveMiner"); // Ivy
+		add("ProcessTree", "InductiveMiner"); // Ivy
+		add("Properties", "InductiveMiner"); // Ivy
+		add("Saxon", "InductiveMiner"); // Ivy
+		add("Widgets", "InductiveMiner"); // Ivy
+		add("EfficientStorage", "InductiveVisualMiner"); // Packagelib
+		add("ApacheUtils", "InductiveVisualMiner"); // Ivy
+		add("BasicUtils", "InductiveVisualMiner"); // Ivy
+		add("EfficientStorage", "InductiveVisualMiner"); // Ivy
+		add("EvolutionaryTreeMiner", "InductiveVisualMiner"); // Ivy
+		add("GraphViz", "InductiveVisualMiner"); // Ivy
+		add("InductiveMiner", "InductiveVisualMiner"); // Ivy
+		add("Log", "InductiveVisualMiner"); // Ivy
+		add("LpSolve", "InductiveVisualMiner"); // Ivy
+		add("PetriNets", "InductiveVisualMiner"); // Ivy
+		add("PNetReplayer", "InductiveVisualMiner"); // Ivy
+		add("ProcessTree", "InductiveVisualMiner"); // Ivy
+		add("Properties", "InductiveVisualMiner"); // Ivy
+		add("PTMerge", "InductiveVisualMiner"); // Ivy
+		add("Saxon", "InductiveVisualMiner"); // Ivy
+		add("Widgets", "InductiveVisualMiner"); // Ivy
+		add("ApacheUtils", "IntentionMiner"); // Packagelib
+		add("BasicUtils", "IntentionMiner"); // Packagelib
+		add("commons-math3-3.5", "IntentionMiner"); // Packagelib
+		add("Widgets", "IntentionMiner"); // Packagelib
+		add("ApacheUtils", "InteractiveProcessMining"); // Ivy
+		add("BasicUtils", "InteractiveProcessMining"); // Ivy
+		add("Log", "InteractiveProcessMining"); // Ivy
+		add("Saxon", "InteractiveProcessMining"); // Ivy
+		add("Widgets", "InteractiveProcessMining"); // Ivy
+		add("Log", "InteractiveVisualization"); // Packagelib
+		add("Widgets", "InteractiveVisualization"); // Packagelib
+		add("ApacheUtils", "IntroductionToProcessMining2IMI35"); // Ivy
+		add("BasicUtils", "IntroductionToProcessMining2IMI35"); // Ivy
+		add("BPMN", "IntroductionToProcessMining2IMI35"); // Ivy
+		add("Daikon", "IntroductionToProcessMining2IMI35"); // Ivy
+		add("DataAwareReplayer", "IntroductionToProcessMining2IMI35"); // Ivy
+		add("DataPetriNets", "IntroductionToProcessMining2IMI35"); // Ivy
+		add("EfficientStorage", "IntroductionToProcessMining2IMI35"); // Ivy
+		add("EPC", "IntroductionToProcessMining2IMI35"); // Ivy
+		add("EvolutionaryTreeMiner", "IntroductionToProcessMining2IMI35"); // Ivy
+		add("Flex", "IntroductionToProcessMining2IMI35"); // Ivy
+		add("GraphViz", "IntroductionToProcessMining2IMI35"); // Ivy
+		add("HeuristicsMiner", "IntroductionToProcessMining2IMI35"); // Ivy
+		add("InductiveMiner", "IntroductionToProcessMining2IMI35"); // Ivy
+		add("InductiveVisualMiner", "IntroductionToProcessMining2IMI35"); // Ivy
+		add("Log", "IntroductionToProcessMining2IMI35"); // Ivy
+		add("PetriNets", "IntroductionToProcessMining2IMI35"); // Ivy
+		add("PNAnalysis", "IntroductionToProcessMining2IMI35"); // Ivy
+		add("PNetAlignmentAnalysis", "IntroductionToProcessMining2IMI35"); // Ivy
+		add("PNetReplayer", "IntroductionToProcessMining2IMI35"); // Ivy
+		add("ProcessTree", "IntroductionToProcessMining2IMI35"); // Ivy
+		add("Properties", "IntroductionToProcessMining2IMI35"); // Ivy
+		add("PTConversions", "IntroductionToProcessMining2IMI35"); // Ivy
+		add("Saxon", "IntroductionToProcessMining2IMI35"); // Ivy
+		add("SocialNetwork", "IntroductionToProcessMining2IMI35"); // Ivy
+		add("TransitionSystems", "IntroductionToProcessMining2IMI35"); // Ivy
+		add("TSPetrinet", "IntroductionToProcessMining2IMI35"); // Ivy
+		add("Widgets", "IntroductionToProcessMining2IMI35"); // Ivy
+		add("XESAlignmentExtension", "IntroductionToProcessMining2IMI35"); // Ivy
+		add("XESLite", "IntroductionToProcessMining2IMI35"); // Ivy
+		add("YAWL", "IntroductionToProcessMining2IMI35"); // Ivy
+		add("BasicUtils", "Ivy1"); // Packagelib
+		add("Widgets", "Ivy1"); // Packagelib
+		add("BasicUtils", "Ivy2"); // Packagelib
+		add("Widgets", "Ivy2"); // Packagelib
+		add("Ivy1", "Ivy2"); // Ivy
+		add("BasicUtils", "Ivy3"); // Packagelib
+		add("Ivy2", "Ivy3"); // Packagelib
+		add("Widgets", "Ivy3"); // Packagelib
+		add("Ivy1", "Ivy3"); // Ivy
+		add("Ivy2", "Ivy3"); // Ivy
+		add("BasicUtils", "JDBC"); // Packagelib
+		add("Log", "JDBC"); // Packagelib
+		add("BasicUtils", "JingrenLiu"); // Packagelib
+		add("BasicUtils", "JingxinXu"); // Packagelib
+		add("Widgets", "JingxinXu"); // Packagelib
+		add("ApacheUtils", "KeyValue"); // Ivy
+		add("BasicUtils", "KeyValue"); // Ivy
+		add("Log", "KeyValue"); // Ivy
+		add("Saxon", "KeyValue"); // Ivy
+		add("Widgets", "KeyValue"); // Ivy
+		add("ApacheUtils", "LihiRaichelson"); // Ivy
+		add("BasicUtils", "LihiRaichelson"); // Ivy
+		add("Log", "LihiRaichelson"); // Ivy
+		add("Saxon", "LihiRaichelson"); // Ivy
+		add("Widgets", "LihiRaichelson"); // Ivy
+		add("AcceptingPetriNet", "LitePackages"); // Ivy
+		add("ActivityClusterArrayCreator", "LitePackages"); // Ivy
+		add("ActivityClusterArray", "LitePackages"); // Ivy
+		add("AlphaMiner", "LitePackages"); // Ivy
+		add("ApacheUtils", "LitePackages"); // Ivy
+		add("BasicUtils", "LitePackages"); // Ivy
+		add("BPMNConversions", "LitePackages"); // Ivy
+		add("BPMNMiner", "LitePackages"); // Ivy
+		add("CausalActivityGraphCreator", "LitePackages"); // Ivy
+		add("CausalActivityGraph", "LitePackages"); // Ivy
+		add("CausalActivityMatrix", "LitePackages"); // Ivy
+		add("CausalActivityMatrixMiner", "LitePackages"); // Ivy
+		add("DataAwareExplorer", "LitePackages"); // Ivy
+		add("DataAwareReplayer", "LitePackages"); // Ivy
+		add("DataPetriNets", "LitePackages"); // Ivy
+		add("EfficientStorage", "LitePackages"); // Ivy
+		add("EpisodeMiner", "LitePackages"); // Ivy
+		add("ETConformance", "LitePackages"); // Ivy
+		add("EvolutionaryTreeMiner", "LitePackages"); // Ivy
+		add("FeaturePrediction", "LitePackages"); // Ivy
+		add("Flex", "LitePackages"); // Ivy
+		add("Fuzzy", "LitePackages"); // Ivy
+		add("GraphVisualizers", "LitePackages"); // Ivy
+		add("GraphViz", "LitePackages"); // Ivy
+		add("HeuristicsMiner", "LitePackages"); // Ivy
+		add("HybridILPMiner", "LitePackages"); // Ivy
+		add("ILPMiner", "LitePackages"); // Ivy
+		add("InductiveMiner", "LitePackages"); // Ivy
+		add("InductiveVisualMiner", "LitePackages"); // Ivy
+		add("InteractiveVisualization", "LitePackages"); // Ivy
+		add("LogAbstractions", "LitePackages"); // Ivy
+		add("LogDialog", "LitePackages"); // Ivy
+		add("LogEnhancement", "LitePackages"); // Ivy
+		add("Log", "LitePackages"); // Ivy
+		add("LogProjection", "LitePackages"); // Ivy
+		add("LPEngine", "LitePackages"); // Ivy
+		add("LpSolve", "LitePackages"); // Ivy
+		add("ModelRepair", "LitePackages"); // Ivy
+		add("Murata", "LitePackages"); // Ivy
+		add("PetriNets", "LitePackages"); // Ivy
+		add("PNAnalysis", "LitePackages"); // Ivy
+		add("PNetAlignmentAnalysis", "LitePackages"); // Ivy
+		add("PNetReplayer", "LitePackages"); // Ivy
+		add("PomPomView", "LitePackages"); // Ivy
+		add("ProcessTree", "LitePackages"); // Ivy
+		add("Properties", "LitePackages"); // Ivy
+		add("PTMerge", "LitePackages"); // Ivy
+		add("Saxon", "LitePackages"); // Ivy
+		add("SocialNetwork", "LitePackages"); // Ivy
+		add("TransitionSystems", "LitePackages"); // Ivy
+		add("TSPetrinet", "LitePackages"); // Ivy
+		add("Widgets", "LitePackages"); // Ivy
+		add("Woflan", "LitePackages"); // Ivy
+		add("XESAlignmentExtension", "LitePackages"); // Ivy
+		add("XESLite", "LitePackages"); // Ivy
+		add("AcceptingPetriNetClassicalReductor", "LocalizedLogs"); // Packagelib
+		add("AcceptingPetriNetDecomposer", "LocalizedLogs"); // Packagelib
+		add("AcceptingPetriNet", "LocalizedLogs"); // Packagelib
+		add("AcceptingPetriNetMiner", "LocalizedLogs"); // Packagelib
+		add("AcceptingPetriNetRedundantPlacesReductor", "LocalizedLogs"); // Packagelib
+		add("ActivityClusterArray", "LocalizedLogs"); // Packagelib
+		add("ApacheUtils", "LocalizedLogs"); // Packagelib
+		add("BasicUtils", "LocalizedLogs"); // Packagelib
+		add("BPMNConversions", "LocalizedLogs"); // Packagelib
+		add("BPMN", "LocalizedLogs"); // Packagelib
+		add("CausalActivityMatrixMiner", "LocalizedLogs"); // Packagelib
+		add("DivideAndConquer", "LocalizedLogs"); // Packagelib
+		add("EvolutionaryTreeMiner", "LocalizedLogs"); // Packagelib
+		add("Flex", "LocalizedLogs"); // Packagelib
+		add("HeuristicsMiner", "LocalizedLogs"); // Packagelib
+		add("HybridILPMiner", "LocalizedLogs"); // Packagelib
+		add("ILPMiner", "LocalizedLogs"); // Packagelib
+		add("InductiveMiner", "LocalizedLogs"); // Packagelib
+		add("LogAbstractions", "LocalizedLogs"); // Packagelib
+		add("Log", "LocalizedLogs"); // Packagelib
+		add("LPEngine", "LocalizedLogs"); // Packagelib
+		add("Murata", "LocalizedLogs"); // Packagelib
+		add("PetriNets", "LocalizedLogs"); // Packagelib
+		add("PNAnalysis", "LocalizedLogs"); // Packagelib
+		add("ProcessTree", "LocalizedLogs"); // Packagelib
+		add("Properties", "LocalizedLogs"); // Packagelib
+		add("Widgets", "LocalizedLogs"); // Packagelib
+		add("ApacheUtils", "Log"); // Ivy
+		add("BasicUtils", "Log"); // Ivy
+		add("Saxon", "Log"); // Ivy
+		add("Widgets", "Log"); // Ivy
+		add("ApacheUtils", "LogAbstractions"); // Ivy
+		add("BasicUtils", "LogAbstractions"); // Ivy
+		add("Log", "LogAbstractions"); // Ivy
+		add("Saxon", "LogAbstractions"); // Ivy
+		add("Widgets", "LogAbstractions"); // Ivy
+		add("AcceptingPetriNet", "LogAlignment"); // Ivy
+		add("ActivityClusterArray", "LogAlignment"); // Ivy
+		add("ApacheUtils", "LogAlignment"); // Ivy
+		add("BasicUtils", "LogAlignment"); // Ivy
+		add("EfficientStorage", "LogAlignment"); // Ivy
+		add("Log", "LogAlignment"); // Ivy
+		add("PetriNets", "LogAlignment"); // Ivy
+		add("PNetAlignmentAnalysis", "LogAlignment"); // Ivy
+		add("PNetReplayer", "LogAlignment"); // Ivy
+		add("Saxon", "LogAlignment"); // Ivy
+		add("Widgets", "LogAlignment"); // Ivy
+		add("ActivityClusterArray", "LogDecomposer"); // Ivy
+		add("ApacheUtils", "LogDecomposer"); // Ivy
+		add("BasicUtils", "LogDecomposer"); // Ivy
+		add("Log", "LogDecomposer"); // Ivy
+		add("Saxon", "LogDecomposer"); // Ivy
+		add("Widgets", "LogDecomposer"); // Ivy
+		add("ApacheUtils", "LogDialog"); // Ivy
+		add("BasicUtils", "LogDialog"); // Ivy
+		add("InteractiveVisualization", "LogDialog"); // Ivy
+		add("Log", "LogDialog"); // Ivy
+		add("Saxon", "LogDialog"); // Ivy
+		add("Widgets", "LogDialog"); // Ivy
+		add("ApacheUtils", "LogEnhancement"); // Ivy
+		add("BasicUtils", "LogEnhancement"); // Ivy
+		add("CNet", "LogEnhancement"); // Ivy
+		add("CNetReplayer", "LogEnhancement"); // Ivy
+		add("DataAwareReplayer", "LogEnhancement"); // Ivy
+		add("DataExpression", "LogEnhancement"); // Ivy
+		add("DataPetriNets", "LogEnhancement"); // Ivy
+		add("EfficientStorage", "LogEnhancement"); // Ivy
+		add("GraphViz", "LogEnhancement"); // Ivy
+		add("Log", "LogEnhancement"); // Ivy
+		add("LpSolve", "LogEnhancement"); // Ivy
+		add("PetriNets", "LogEnhancement"); // Ivy
+		add("PNetReplayer", "LogEnhancement"); // Ivy
+		add("Saxon", "LogEnhancement"); // Ivy
+		add("Widgets", "LogEnhancement"); // Ivy
+		add("XESAlignmentExtension", "LogEnhancement"); // Ivy
+		add("XESLite", "LogEnhancement"); // Ivy
+		add("Log", "LogMerge"); // Packagelib
+		add("SimpleLogOperations", "LogMerge"); // Packagelib
+		add("BasicUtils", "LogMergeM2M"); // Packagelib
+		add("Log", "LogMetrics"); // Packagelib
+		add("TransitionSystems", "LogMetrics"); // Packagelib
+		add("ApacheUtils", "LogOnMapReplay"); // Ivy
+		add("BasicUtils", "LogOnMapReplay"); // Ivy
+		add("Log", "LogOnMapReplay"); // Ivy
+		add("PetriNets", "LogOnMapReplay"); // Ivy
+		add("Saxon", "LogOnMapReplay"); // Ivy
+		add("Widgets", "LogOnMapReplay"); // Ivy
+		add("XESLite", "LogOnMapReplay"); // Ivy
+		add("DottedChart2", "LogOverview"); // Packagelib
+		add("InteractiveVisualization", "LogOverview"); // Packagelib
+		add("LogDialog", "LogOverview"); // Packagelib
+		add("Log", "LogOverview"); // Packagelib
+		add("PatternAbstractions", "LogOverview"); // Packagelib
+		add("Widgets", "LogOverview"); // Packagelib
+		add("ApacheUtils", "LogProjection"); // Ivy
+		add("BasicUtils", "LogProjection"); // Ivy
+		add("Log", "LogProjection"); // Ivy
+		add("Saxon", "LogProjection"); // Ivy
+		add("Widgets", "LogProjection"); // Ivy
+		add("XESLite", "LogProjection"); // Ivy
+		add("Log", "LogTimeFilter"); // Packagelib
+		add("BasicUtils", "LPEngine"); // Ivy
+		add("LpSolve", "LPEngine"); // Ivy
+		add("Widgets", "LPEngine"); // Ivy
+		add("BasicUtils", "LTL2Automaton"); // Packagelib
+		add("DeclareMinerVisualizer", "LTLChecker"); // Packagelib
+		add("DeclareVisualizer", "LTLChecker"); // Packagelib
+		add("Log", "LTLChecker"); // Packagelib
+		add("LTL2Automaton", "LTLChecker"); // Packagelib
+		add("Widgets", "LTLChecker"); // Packagelib
+		add("ApacheUtils", "MarcoCordewener"); // Ivy
+		add("BasicUtils", "MarcoCordewener"); // Ivy
+		add("EfficientStorage", "MarcoCordewener"); // Ivy
+		add("EvolutionaryTreeMiner", "MarcoCordewener"); // Ivy
+		add("GraphViz", "MarcoCordewener"); // Ivy
+		add("InductiveMiner", "MarcoCordewener"); // Ivy
+		add("InductiveVisualMiner", "MarcoCordewener"); // Ivy
+		add("Log", "MarcoCordewener"); // Ivy
+		add("LogProjection", "MarcoCordewener"); // Ivy
+		add("LpSolve", "MarcoCordewener"); // Ivy
+		add("PetriNets", "MarcoCordewener"); // Ivy
+		add("PNetAlignmentAnalysis", "MarcoCordewener"); // Ivy
+		add("PNetReplayer", "MarcoCordewener"); // Ivy
+		add("ProcessTree", "MarcoCordewener"); // Ivy
+		add("Properties", "MarcoCordewener"); // Ivy
+		add("PTMerge", "MarcoCordewener"); // Ivy
+		add("Saxon", "MarcoCordewener"); // Ivy
+		add("TraceClustering", "MarcoCordewener"); // Ivy
+		add("Widgets", "MarcoCordewener"); // Ivy
+		add("XESLite", "MarcoCordewener"); // Ivy
+		add("Log", "MarieKoorneef"); // Packagelib
+		add("ApacheUtils", "MarieKoorneef"); // Ivy
+		add("BasicUtils", "MarieKoorneef"); // Ivy
+		add("Log", "MarieKoorneef"); // Ivy
+		add("Saxon", "MarieKoorneef"); // Ivy
+		add("TransitionSystems", "MarieKoorneef"); // Ivy
+		add("Widgets", "MarieKoorneef"); // Ivy
+		add("BasicUtils", "MiningResourceProfiles"); // Packagelib
+		add("Widgets", "MiningResourceProfiles"); // Packagelib
+		add("ApacheUtils", "MobuconLDL"); // Ivy
+		add("BasicUtils", "MobuconLDL"); // Ivy
+		add("Log", "MobuconLDL"); // Ivy
+		add("Saxon", "MobuconLDL"); // Ivy
+		add("Widgets", "MobuconLDL"); // Ivy
+		add("ApacheUtils", "MobuconLTL"); // Ivy
+		add("BasicUtils", "MobuconLTL"); // Ivy
+		add("Log", "MobuconLTL"); // Ivy
+		add("Saxon", "MobuconLTL"); // Ivy
+		add("Widgets", "MobuconLTL"); // Ivy
+		add("ApacheUtils", "ModelRepair"); // Ivy
+		add("BasicUtils", "ModelRepair"); // Ivy
+		add("EfficientStorage", "ModelRepair"); // Ivy
+		add("ILPMiner", "ModelRepair"); // Ivy
+		add("Log", "ModelRepair"); // Ivy
+		add("LPEngine", "ModelRepair"); // Ivy
+		add("LpSolve", "ModelRepair"); // Ivy
+		add("PetriNets", "ModelRepair"); // Ivy
+		add("PNetReplayer", "ModelRepair"); // Ivy
+		add("Saxon", "ModelRepair"); // Ivy
+		add("Widgets", "ModelRepair"); // Ivy
+		add("AcceptingPetriNetClassicalReductor", "MultiPerspectiveMiner"); // Packagelib
+		add("AcceptingPetriNet", "MultiPerspectiveMiner"); // Packagelib
+		add("AcceptingPetriNetMiner", "MultiPerspectiveMiner"); // Packagelib
+		add("AlphaMiner", "MultiPerspectiveMiner"); // Packagelib
+		add("ApacheUtils", "MultiPerspectiveMiner"); // Packagelib
+		add("BasicUtils", "MultiPerspectiveMiner"); // Packagelib
+		add("BPMNConversions", "MultiPerspectiveMiner"); // Packagelib
+		add("BPMN", "MultiPerspectiveMiner"); // Packagelib
+		add("CausalActivityMatrix", "MultiPerspectiveMiner"); // Packagelib
+		add("CausalActivityMatrixMiner", "MultiPerspectiveMiner"); // Packagelib
+		add("DataPetriNets", "MultiPerspectiveMiner"); // Packagelib
+		add("DecomposedConformance", "MultiPerspectiveMiner"); // Packagelib
+		add("EfficientStorage", "MultiPerspectiveMiner"); // Packagelib
+		add("EvolutionaryTreeMiner", "MultiPerspectiveMiner"); // Packagelib
+		add("Flex", "MultiPerspectiveMiner"); // Packagelib
+		add("GraphViz", "MultiPerspectiveMiner"); // Packagelib
+		add("HeuristicsMiner", "MultiPerspectiveMiner"); // Packagelib
+		add("HybridILPMiner", "MultiPerspectiveMiner"); // Packagelib
+		add("ILPMiner", "MultiPerspectiveMiner"); // Packagelib
+		add("InductiveMiner", "MultiPerspectiveMiner"); // Packagelib
+		add("LocalizedLogs", "MultiPerspectiveMiner"); // Packagelib
+		add("LogAbstractions", "MultiPerspectiveMiner"); // Packagelib
+		add("LogAlignment", "MultiPerspectiveMiner"); // Packagelib
+		add("Log", "MultiPerspectiveMiner"); // Packagelib
+		add("LPEngine", "MultiPerspectiveMiner"); // Packagelib
+		add("LpSolve", "MultiPerspectiveMiner"); // Packagelib
+		add("Murata", "MultiPerspectiveMiner"); // Packagelib
+		add("PetriNets", "MultiPerspectiveMiner"); // Packagelib
+		add("PNAnalysis", "MultiPerspectiveMiner"); // Packagelib
+		add("PNetReplayer", "MultiPerspectiveMiner"); // Packagelib
+		add("ProcessTree", "MultiPerspectiveMiner"); // Packagelib
+		add("Properties", "MultiPerspectiveMiner"); // Packagelib
+		add("Swimlanes", "MultiPerspectiveMiner"); // Packagelib
+		add("Widgets", "MultiPerspectiveMiner"); // Packagelib
+		add("XESLite", "MultiPerspectiveMiner"); // Packagelib
+		add("AcceptingPetriNet", "MultiPerspectiveProcessExplorer"); // Ivy
+		add("AlphaMiner", "MultiPerspectiveProcessExplorer"); // Ivy
+		add("ApacheUtils", "MultiPerspectiveProcessExplorer"); // Ivy
+		add("BasicUtils", "MultiPerspectiveProcessExplorer"); // Ivy
+		add("Daikon", "MultiPerspectiveProcessExplorer"); // Ivy
+		add("DataAwareExplorer", "MultiPerspectiveProcessExplorer"); // Ivy
+		add("DataAwareReplayer", "MultiPerspectiveProcessExplorer"); // Ivy
+		add("DataPetriNets", "MultiPerspectiveProcessExplorer"); // Ivy
+		add("EfficientStorage", "MultiPerspectiveProcessExplorer"); // Ivy
+		add("EvolutionaryTreeMiner", "MultiPerspectiveProcessExplorer"); // Ivy
+		add("GraphViz", "MultiPerspectiveProcessExplorer"); // Ivy
+		add("InductiveMiner", "MultiPerspectiveProcessExplorer"); // Ivy
+		add("InductiveVisualMiner", "MultiPerspectiveProcessExplorer"); // Ivy
+		add("LogAbstractions", "MultiPerspectiveProcessExplorer"); // Ivy
+		add("LogEnhancement", "MultiPerspectiveProcessExplorer"); // Ivy
+		add("Log", "MultiPerspectiveProcessExplorer"); // Ivy
+		add("LpSolve", "MultiPerspectiveProcessExplorer"); // Ivy
+		add("PetriNets", "MultiPerspectiveProcessExplorer"); // Ivy
+		add("PNetReplayer", "MultiPerspectiveProcessExplorer"); // Ivy
+		add("ProcessTree", "MultiPerspectiveProcessExplorer"); // Ivy
+		add("Properties", "MultiPerspectiveProcessExplorer"); // Ivy
+		add("PTMerge", "MultiPerspectiveProcessExplorer"); // Ivy
+		add("Saxon", "MultiPerspectiveProcessExplorer"); // Ivy
+		add("Widgets", "MultiPerspectiveProcessExplorer"); // Ivy
+		add("XESAlignmentExtension", "MultiPerspectiveProcessExplorer"); // Ivy
+		add("XESLite", "MultiPerspectiveProcessExplorer"); // Ivy
+		add("ApacheUtils", "Murata"); // Ivy
+		add("BasicUtils", "Murata"); // Ivy
+		add("Log", "Murata"); // Ivy
+		add("LPEngine", "Murata"); // Ivy
+		add("LpSolve", "Murata"); // Ivy
+		add("PetriNets", "Murata"); // Ivy
+		add("Saxon", "Murata"); // Ivy
+		add("Widgets", "Murata"); // Ivy
+		add("BasicUtils", "NewPackage"); // Packagelib
+		add("Widgets", "NewPackage"); // Packagelib
+		add("BasicUtils", "NewPackage7"); // Packagelib
+		add("Widgets", "NewPackage7"); // Packagelib
+		add("BasicUtils", "NewPackage7_NoJavadoc"); // Packagelib
+		add("Widgets", "NewPackage7_NoJavadoc"); // Packagelib
+		add("BasicUtils", "NewPackageNoIvy"); // Packagelib
+		add("Widgets", "NewPackageNoIvy"); // Packagelib
+		add("BasicUtils", "NewPackage_NoJavadoc"); // Packagelib
+		add("Widgets", "NewPackage_NoJavadoc"); // Packagelib
+		add("AcceptingPetriNetClassicalReductor", "NiekTax"); // Packagelib
+		add("AcceptingPetriNet", "NiekTax"); // Packagelib
+		add("BasicUtils", "NiekTax"); // Packagelib
+		add("EfficientStorage", "NiekTax"); // Packagelib
+		add("ETConformance", "NiekTax"); // Packagelib
+		add("EvolutionaryTreeMiner", "NiekTax"); // Packagelib
+		add("GraphVisualizers", "NiekTax"); // Packagelib
+		add("GraphViz", "NiekTax"); // Packagelib
+		add("HeuristicsMiner-20150902", "NiekTax"); // Packagelib
+		add("HeuristicsMiner", "NiekTax"); // Packagelib
+		add("HybridILPMiner", "NiekTax"); // Packagelib
+		add("ILPMiner-20150903", "NiekTax"); // Packagelib
+		add("InductiveMiner", "NiekTax"); // Packagelib
+		add("LogAbstractions", "NiekTax"); // Packagelib
+		add("Log", "NiekTax"); // Packagelib
+		add("LPEngine", "NiekTax"); // Packagelib
+		add("PetriNets", "NiekTax"); // Packagelib
+		add("PNetAlignmentAnalysis", "NiekTax"); // Packagelib
+		add("PNetReplayer", "NiekTax"); // Packagelib
+		add("ProcessTree", "NiekTax"); // Packagelib
+		add("TraceAlignment", "NiekTax"); // Packagelib
+		add("TraceClustering", "NiekTax"); // Packagelib
+		add("Widgets", "NiekTax"); // Packagelib
+		add("XESLite", "NiekTax"); // Packagelib
+		add("AlphaMiner", "NoiseFiltering"); // Packagelib
+		add("BasicUtils", "NoiseFiltering"); // Packagelib
+		add("BPMNMiner", "NoiseFiltering"); // Packagelib
+		add("EfficientStorage", "NoiseFiltering"); // Packagelib
+		add("ETConformance", "NoiseFiltering"); // Packagelib
+		add("HeuristicsMiner", "NoiseFiltering"); // Packagelib
+		add("ILPMiner", "NoiseFiltering"); // Packagelib
+		add("InductiveMiner", "NoiseFiltering"); // Packagelib
+		add("LogAbstractions", "NoiseFiltering"); // Packagelib
+		add("Log", "NoiseFiltering"); // Packagelib
+		add("LpSolve", "NoiseFiltering"); // Packagelib
+		add("PetriNets", "NoiseFiltering"); // Packagelib
+		add("PNetReplayer", "NoiseFiltering"); // Packagelib
+		add("ProcessTree", "NoiseFiltering"); // Packagelib
+		add("Properties", "NoiseFiltering"); // Packagelib
+		add("Widgets", "NoiseFiltering"); // Packagelib
+		add("ApacheUtils", "NonAtomicDeclareMiner"); // Ivy
+		add("BasicUtils", "NonAtomicDeclareMiner"); // Ivy
+		add("Log", "NonAtomicDeclareMiner"); // Ivy
+		add("Saxon", "NonAtomicDeclareMiner"); // Ivy
+		add("Widgets", "NonAtomicDeclareMiner"); // Ivy
+		add("AcceptingPetriNetClassicalReductor", "NourAssy"); // Ivy
+		add("AcceptingPetriNet", "NourAssy"); // Ivy
+		add("AcceptingPetriNetMiner", "NourAssy"); // Ivy
+		add("ActivityClusterArrayCreator", "NourAssy"); // Ivy
+		add("ActivityClusterArray", "NourAssy"); // Ivy
+		add("AlphaMiner", "NourAssy"); // Ivy
+		add("ApacheUtils", "NourAssy"); // Ivy
+		add("BasicUtils", "NourAssy"); // Ivy
+		add("CausalActivityGraphCreator", "NourAssy"); // Ivy
+		add("CausalActivityGraph", "NourAssy"); // Ivy
+		add("CausalActivityMatrix", "NourAssy"); // Ivy
+		add("CausalActivityMatrixMiner", "NourAssy"); // Ivy
+		add("EfficientStorage", "NourAssy"); // Ivy
+		add("ETConformance", "NourAssy"); // Ivy
+		add("EvolutionaryTreeMiner", "NourAssy"); // Ivy
+		add("Fuzzy", "NourAssy"); // Ivy
+		add("GraphVisualizers", "NourAssy"); // Ivy
+		add("GraphViz", "NourAssy"); // Ivy
+		add("HeuristicsMiner", "NourAssy"); // Ivy
+		add("HybridILPMiner", "NourAssy"); // Ivy
+		add("ILPMiner", "NourAssy"); // Ivy
+		add("InductiveMiner", "NourAssy"); // Ivy
+		add("LocalizedLogs", "NourAssy"); // Ivy
+		add("LogAbstractions", "NourAssy"); // Ivy
+		add("LogDecomposer", "NourAssy"); // Ivy
+		add("Log", "NourAssy"); // Ivy
+		add("LPEngine", "NourAssy"); // Ivy
+		add("LpSolve", "NourAssy"); // Ivy
+		add("Murata", "NourAssy"); // Ivy
+		add("PetriNets", "NourAssy"); // Ivy
+		add("PNetAlignmentAnalysis", "NourAssy"); // Ivy
+		add("PNetReplayer", "NourAssy"); // Ivy
+		add("ProcessTree", "NourAssy"); // Ivy
+		add("Properties", "NourAssy"); // Ivy
+		add("PTMerge", "NourAssy"); // Ivy
+		add("Saxon", "NourAssy"); // Ivy
+		add("TransitionSystems", "NourAssy"); // Ivy
+		add("Widgets", "NourAssy"); // Ivy
+		add("ApacheUtils", "OCBC"); // Ivy
+		add("BasicUtils", "OCBC"); // Ivy
+		add("InteractiveVisualization", "OCBC"); // Ivy
+		add("Log", "OCBC"); // Ivy
+		add("Saxon", "OCBC"); // Ivy
+		add("Widgets", "OCBC"); // Ivy
+		add("AcceptingPetriNet", "OliverMeier"); // Ivy
+		add("AlphaMiner", "OliverMeier"); // Ivy
+		add("ApacheUtils", "OliverMeier"); // Ivy
+		add("BasicUtils", "OliverMeier"); // Ivy
+		add("LogAbstractions", "OliverMeier"); // Ivy
+		add("Log", "OliverMeier"); // Ivy
+		add("PetriNets", "OliverMeier"); // Ivy
+		add("Saxon", "OliverMeier"); // Ivy
+		add("Widgets", "OliverMeier"); // Ivy
+		add("AcceptingPetriNet", "OnlineConformance"); // Ivy
+		add("ApacheUtils", "OnlineConformance"); // Ivy
+		add("BasicUtils", "OnlineConformance"); // Ivy
+		add("CPNet", "OnlineConformance"); // Ivy
+		add("EfficientStorage", "OnlineConformance"); // Ivy
+		add("EMF", "OnlineConformance"); // Ivy
+		add("EventStream", "OnlineConformance"); // Ivy
+		add("EvolutionaryTreeMiner", "OnlineConformance"); // Ivy
+		add("InductiveMiner", "OnlineConformance"); // Ivy
+		add("LogAbstractions", "OnlineConformance"); // Ivy
+		add("Log", "OnlineConformance"); // Ivy
+		add("LpSolve", "OnlineConformance"); // Ivy
+		add("PetriNets", "OnlineConformance"); // Ivy
+		add("PNetReplayer", "OnlineConformance"); // Ivy
+		add("ProcessTree", "OnlineConformance"); // Ivy
+		add("Properties", "OnlineConformance"); // Ivy
+		add("PTMerge", "OnlineConformance"); // Ivy
+		add("Saxon", "OnlineConformance"); // Ivy
+		add("Stream", "OnlineConformance"); // Ivy
+		add("Widgets", "OnlineConformance"); // Ivy
+		add("Log", "OperationalSupport"); // Packagelib
+		add("Widgets", "OperationalSupport"); // Packagelib
+		add("BasicUtils", "OriginatorDecorator"); // Packagelib
+		add("Log", "OriginatorDecorator"); // Packagelib
+		add("Widgets", "OriginatorDecorator"); // Packagelib
+		add("Log", "OSService"); // Packagelib
+		add("BasicUtils", "OverallProcessRisk"); // Packagelib
+		add("Widgets", "OverallProcessRisk"); // Packagelib
+		add("ApacheUtils", "PartialOrderReplayer"); // Ivy
+		add("BasicUtils", "PartialOrderReplayer"); // Ivy
+		add("EfficientStorage", "PartialOrderReplayer"); // Ivy
+		add("Log", "PartialOrderReplayer"); // Ivy
+		add("LpSolve", "PartialOrderReplayer"); // Ivy
+		add("PetriNets", "PartialOrderReplayer"); // Ivy
+		add("PNetReplayer", "PartialOrderReplayer"); // Ivy
+		add("Saxon", "PartialOrderReplayer"); // Ivy
+		add("Widgets", "PartialOrderReplayer"); // Ivy
+		add("BasicUtils", "PatternAbstractions"); // Packagelib
+		add("InteractiveVisualization", "PatternAbstractions"); // Packagelib
+		add("Log", "PatternAbstractions"); // Packagelib
+		add("Widgets", "PatternAbstractions"); // Packagelib
+		add("Log", "Performance"); // Packagelib
+		add("Widgets", "Performance"); // Packagelib
+		add("AccessCPN", "Petra"); // Packagelib
+		add("BasicUtils", "Petra"); // Packagelib
+		add("CPNet", "Petra"); // Packagelib
+		add("EMF", "Petra"); // Packagelib
+		add("GPLv2Utils", "Petra"); // Packagelib
+		add("LPEngine", "Petra"); // Packagelib
+		add("ProcessTree", "Petra"); // Packagelib
+		add("Properties", "Petra"); // Packagelib
+		add("Widgets", "Petra"); // Packagelib
+		add("PetriNets", "Petrify"); // Packagelib
+		add("TransitionSystems", "Petrify"); // Packagelib
+		add("EfficientStorage", "PetriNetReplayAnalysis"); // Packagelib
+		add("InteractiveVisualization", "PetriNetReplayAnalysis"); // Packagelib
+		add("LogDialog", "PetriNetReplayAnalysis"); // Packagelib
+		add("Log", "PetriNetReplayAnalysis"); // Packagelib
+		add("LogMerge", "PetriNetReplayAnalysis"); // Packagelib
+		add("PetriNets", "PetriNetReplayAnalysis"); // Packagelib
+		add("Widgets", "PetriNetReplayAnalysis"); // Packagelib
+		add("TransitionSystems", "PetriNets"); // Packagelib
+		add("ApacheUtils", "PetriNets"); // Ivy
+		add("BasicUtils", "PetriNets"); // Ivy
+		add("Log", "PetriNets"); // Ivy
+		add("Saxon", "PetriNets"); // Ivy
+		add("Widgets", "PetriNets"); // Ivy
+		add("PetriNets", "PNAnalysis"); // Packagelib
+		add("TransitionSystems", "PNAnalysis"); // Packagelib
+		add("BasicUtils", "PNetAlignmentAnalysis"); // Packagelib
+		add("EfficientStorage", "PNetAlignmentAnalysis"); // Packagelib
+		add("GuideTreeMiner", "PNetAlignmentAnalysis"); // Packagelib
+		add("Log", "PNetAlignmentAnalysis"); // Packagelib
+		add("PetriNets", "PNetAlignmentAnalysis"); // Packagelib
+		add("PNetReplayer", "PNetAlignmentAnalysis"); // Packagelib
+		add("TraceAlignmentWithGuideTree", "PNetAlignmentAnalysis"); // Packagelib
+		add("Widgets", "PNetAlignmentAnalysis"); // Packagelib
+		add("BasicUtils", "PNetReplayer"); // Packagelib
+		add("EfficientStorage", "PNetReplayer"); // Packagelib
+		add("LogDialog", "PNetReplayer"); // Packagelib
+		add("Log", "PNetReplayer"); // Packagelib
+		add("LpSolve", "PNetReplayer"); // Packagelib
+		add("PetriNets", "PNetReplayer"); // Packagelib
+		add("Widgets", "PNetReplayer"); // Packagelib
+		add("EPCConversion", "PomPomView"); // Packagelib
+		add("EPC", "PomPomView"); // Packagelib
+		add("Log", "PomPomView"); // Packagelib
+		add("Murata", "PomPomView"); // Packagelib
+		add("PetriNets", "PomPomView"); // Packagelib
+		add("Widgets", "PomPomView"); // Packagelib
+		add("Log", "PPM"); // Packagelib
+		add("SimpleLogOperations", "PPM"); // Packagelib
+		add("AcceptingPetriNet", "PrabhakarDixit"); // Packagelib
+		add("ApacheUtils", "PrabhakarDixit"); // Packagelib
+		add("BasicUtils", "PrabhakarDixit"); // Packagelib
+		add("EfficientStorage", "PrabhakarDixit"); // Packagelib
+		add("EvolutionaryTreeMiner", "PrabhakarDixit"); // Packagelib
+		add("HeuristicsMiner", "PrabhakarDixit"); // Packagelib
+		add("InductiveMiner", "PrabhakarDixit"); // Packagelib
+		add("Log", "PrabhakarDixit"); // Packagelib
+		add("LpSolve", "PrabhakarDixit"); // Packagelib
+		add("PetriNets", "PrabhakarDixit"); // Packagelib
+		add("ProcessTree", "PrabhakarDixit"); // Packagelib
+		add("Properties", "PrabhakarDixit"); // Packagelib
+		add("PTMerge", "PrabhakarDixit"); // Packagelib
+		add("Widgets", "PrabhakarDixit"); // Packagelib
+		add("ApacheUtils", "ProcessComparator"); // Ivy
+		add("BasicUtils", "ProcessComparator"); // Ivy
+		add("GraphViz", "ProcessComparator"); // Ivy
+		add("Log", "ProcessComparator"); // Ivy
+		add("Saxon", "ProcessComparator"); // Ivy
+		add("TransitionSystems", "ProcessComparator"); // Ivy
+		add("Widgets", "ProcessComparator"); // Ivy
+		add("ApacheUtils", "ProcessCubes"); // Ivy
+		add("BasicUtils", "ProcessCubes"); // Ivy
+		add("BPMN", "ProcessCubes"); // Ivy
+		add("DottedChart2", "ProcessCubes"); // Ivy
+		add("DottedChart", "ProcessCubes"); // Ivy
+		add("EfficientStorage", "ProcessCubes"); // Ivy
+		add("EPC", "ProcessCubes"); // Ivy
+		add("EvolutionaryTreeMiner", "ProcessCubes"); // Ivy
+		add("Flex", "ProcessCubes"); // Ivy
+		add("Fuzzy", "ProcessCubes"); // Ivy
+		add("GraphViz", "ProcessCubes"); // Ivy
+		add("HeuristicsMiner", "ProcessCubes"); // Ivy
+		add("InductiveMiner", "ProcessCubes"); // Ivy
+		add("InductiveVisualMiner", "ProcessCubes"); // Ivy
+		add("InteractiveVisualization", "ProcessCubes"); // Ivy
+		add("LogAbstractions", "ProcessCubes"); // Ivy
+		add("LogDialog", "ProcessCubes"); // Ivy
+		add("Log", "ProcessCubes"); // Ivy
+		add("LogMetrics", "ProcessCubes"); // Ivy
+		add("LpSolve", "ProcessCubes"); // Ivy
+		add("LTLChecker", "ProcessCubes"); // Ivy
+		add("PetriNets", "ProcessCubes"); // Ivy
+		add("PNetReplayer", "ProcessCubes"); // Ivy
+		add("ProcessTree", "ProcessCubes"); // Ivy
+		add("Properties", "ProcessCubes"); // Ivy
+		add("PTConversions", "ProcessCubes"); // Ivy
+		add("PTMerge", "ProcessCubes"); // Ivy
+		add("Saxon", "ProcessCubes"); // Ivy
+		add("SocialNetwork", "ProcessCubes"); // Ivy
+		add("Widgets", "ProcessCubes"); // Ivy
+		add("XESLite", "ProcessCubes"); // Ivy
+		add("YAWL", "ProcessCubes"); // Ivy
+		add("BPMN", "ProcessLogGenerator"); // Packagelib
+		add("HeuristicsMiner", "ProcessLogGenerator"); // Packagelib
+		add("InteractiveVisualization", "ProcessLogGenerator"); // Packagelib
+		add("LogDialog", "ProcessLogGenerator"); // Packagelib
+		add("Log", "ProcessLogGenerator"); // Packagelib
+		add("PetriNets", "ProcessLogGenerator"); // Packagelib
+		add("Widgets", "ProcessLogGenerator"); // Packagelib
+		add("ApacheUtils", "ProcessProfiler3D"); // Ivy
+		add("BasicUtils", "ProcessProfiler3D"); // Ivy
+		add("EfficientStorage", "ProcessProfiler3D"); // Ivy
+		add("Log", "ProcessProfiler3D"); // Ivy
+		add("PetriNets", "ProcessProfiler3D"); // Ivy
+		add("PNetAlignmentAnalysis", "ProcessProfiler3D"); // Ivy
+		add("PNetReplayer", "ProcessProfiler3D"); // Ivy
+		add("Saxon", "ProcessProfiler3D"); // Ivy
+		add("Widgets", "ProcessProfiler3D"); // Ivy
+		add("BasicUtils", "ProcessRiskIndicators"); // Packagelib
+		add("Widgets", "ProcessRiskIndicators"); // Packagelib
+		add("BasicUtils", "ProcessTree"); // Packagelib
+		add("Log", "ProcessTree"); // Packagelib
+		add("LpSolve", "ProcessTree"); // Packagelib
+		add("PetriNets", "ProcessTree"); // Packagelib
+		add("Properties", "ProcessTree"); // Packagelib
+		add("YAWL", "ProcessTree"); // Packagelib
+		add("BasicUtils", "ProcessTreeEnricher"); // Packagelib
+		add("EfficientStorage", "ProcessTreeEnricher"); // Packagelib
+		add("EvolutionaryTreeMiner", "ProcessTreeEnricher"); // Packagelib
+		add("Log", "ProcessTreeEnricher"); // Packagelib
+		add("ProcessTree", "ProcessTreeEnricher"); // Packagelib
+		add("Properties", "ProcessTreeEnricher"); // Packagelib
+		add("Log", "ProductData"); // Packagelib
+		add("PetriNets", "ProductData"); // Packagelib
+		add("Widgets", "ProductData"); // Packagelib
+		add("AcceptingPetriNet", "ProjectedRecallAndPrecision"); // Ivy
+		add("ApacheUtils", "ProjectedRecallAndPrecision"); // Ivy
+		add("BasicUtils", "ProjectedRecallAndPrecision"); // Ivy
+		add("GraphViz", "ProjectedRecallAndPrecision"); // Ivy
+		add("InductiveMiner", "ProjectedRecallAndPrecision"); // Ivy
+		add("Log", "ProjectedRecallAndPrecision"); // Ivy
+		add("PetriNets", "ProjectedRecallAndPrecision"); // Ivy
+		add("PNAnalysis", "ProjectedRecallAndPrecision"); // Ivy
+		add("PNetReplayer", "ProjectedRecallAndPrecision"); // Ivy
+		add("ProcessTree", "ProjectedRecallAndPrecision"); // Ivy
+		add("Properties", "ProjectedRecallAndPrecision"); // Ivy
+		add("Saxon", "ProjectedRecallAndPrecision"); // Ivy
+		add("TransitionSystems", "ProjectedRecallAndPrecision"); // Ivy
+		add("Widgets", "ProjectedRecallAndPrecision"); // Ivy
+		add("BasicUtils", "Prompt"); // Packagelib
+		add("Widgets", "Prompt"); // Packagelib
+		add("AcceptingPetriNet", "PTAndLogGenerator"); // Ivy
+		add("AlphaMiner", "PTAndLogGenerator"); // Ivy
+		add("ApacheUtils", "PTAndLogGenerator"); // Ivy
+		add("BasicUtils", "PTAndLogGenerator"); // Ivy
+		add("DataAwareReplayer", "PTAndLogGenerator"); // Ivy
+		add("DataPetriNets", "PTAndLogGenerator"); // Ivy
+		add("EfficientStorage", "PTAndLogGenerator"); // Ivy
+		add("GraphViz", "PTAndLogGenerator"); // Ivy
+		add("LogAbstractions", "PTAndLogGenerator"); // Ivy
+		add("Log", "PTAndLogGenerator"); // Ivy
+		add("LpSolve", "PTAndLogGenerator"); // Ivy
+		add("PetriNets", "PTAndLogGenerator"); // Ivy
+		add("PNetReplayer", "PTAndLogGenerator"); // Ivy
+		add("ProcessTree", "PTAndLogGenerator"); // Ivy
+		add("Properties", "PTAndLogGenerator"); // Ivy
+		add("Saxon", "PTAndLogGenerator"); // Ivy
+		add("Widgets", "PTAndLogGenerator"); // Ivy
+		add("XESAlignmentExtension", "PTAndLogGenerator"); // Ivy
+		add("XESLite", "PTAndLogGenerator"); // Ivy
+		add("ApacheUtils", "PTConversions"); // Ivy
+		add("BasicUtils", "PTConversions"); // Ivy
+		add("BPMN", "PTConversions"); // Ivy
+		add("EPC", "PTConversions"); // Ivy
+		add("Log", "PTConversions"); // Ivy
+		add("PetriNets", "PTConversions"); // Ivy
+		add("ProcessTree", "PTConversions"); // Ivy
+		add("Properties", "PTConversions"); // Ivy
+		add("Saxon", "PTConversions"); // Ivy
+		add("Widgets", "PTConversions"); // Ivy
+		add("YAWL", "PTConversions"); // Ivy
+		add("BasicUtils", "PTMerge"); // Packagelib
+		add("LpSolve", "PTMerge"); // Packagelib
+		add("ProcessTree", "PTMerge"); // Packagelib
+		add("Properties", "PTMerge"); // Packagelib
+		add("BasicUtils", "QianXiong"); // Packagelib
+		add("ApacheUtils", "QMiner"); // Ivy
+		add("BasicUtils", "QMiner"); // Ivy
+		add("Log", "QMiner"); // Ivy
+		add("Saxon", "QMiner"); // Ivy
+		add("Widgets", "QMiner"); // Ivy
+		add("BasicUtils", "QualityMetrics"); // Packagelib
+		add("CPNet", "QualityMetrics"); // Packagelib
+		add("EMF", "QualityMetrics"); // Packagelib
+		add("EPC", "QualityMetrics"); // Packagelib
+		add("GPLv2Utils", "QualityMetrics"); // Packagelib
+		add("Log", "QualityMetrics"); // Packagelib
+		add("LPEngine", "QualityMetrics"); // Packagelib
+		add("Petra", "QualityMetrics"); // Packagelib
+		add("ProcessTree", "QualityMetrics"); // Packagelib
+		add("Properties", "QualityMetrics"); // Packagelib
+		add("YAWL", "QualityMetrics"); // Packagelib
+		add("ApacheUtils", "RegPFA"); // Ivy
+		add("BasicUtils", "RegPFA"); // Ivy
+		add("Log", "RegPFA"); // Ivy
+		add("Saxon", "RegPFA"); // Ivy
+		add("Widgets", "RegPFA"); // Ivy
+		add("ApacheUtils", "RelationalXES"); // Packagelib
+		add("BasicUtils", "RelationalXES"); // Packagelib
+		add("EfficientStorage", "RelationalXES"); // Packagelib
+		add("EvolutionaryTreeMiner", "RelationalXES"); // Packagelib
+		add("JDBC", "RelationalXES"); // Packagelib
+		add("Log", "RelationalXES"); // Packagelib
+		add("Widgets", "RelationalXES"); // Packagelib
+		add("XESLite", "RelationalXES"); // Packagelib
+		add("ApacheUtils", "ResourceQueueBehaviour"); // Ivy
+		add("BasicUtils", "ResourceQueueBehaviour"); // Ivy
+		add("Log", "ResourceQueueBehaviour"); // Ivy
+		add("Saxon", "ResourceQueueBehaviour"); // Ivy
+		add("Widgets", "ResourceQueueBehaviour"); // Ivy
+		add("ApacheUtils", "ResourceRecommendation"); // Ivy
+		add("BasicUtils", "ResourceRecommendation"); // Ivy
+		add("Log", "ResourceRecommendation"); // Ivy
+		add("LPEngine", "ResourceRecommendation"); // Ivy
+		add("LpSolve", "ResourceRecommendation"); // Ivy
+		add("Saxon", "ResourceRecommendation"); // Ivy
+		add("SLog", "ResourceRecommendation"); // Ivy
+		add("Widgets", "ResourceRecommendation"); // Ivy
+		add("ApacheUtils", "RichEventLogGenerator"); // Ivy
+		add("BasicUtils", "RichEventLogGenerator"); // Ivy
+		add("Log", "RichEventLogGenerator"); // Ivy
+		add("Saxon", "RichEventLogGenerator"); // Ivy
+		add("Widgets", "RichEventLogGenerator"); // Ivy
+		add("ApacheUtils", "RickVanBalkom"); // Ivy
+		add("BasicUtils", "RickVanBalkom"); // Ivy
+		add("DataPetriNets", "RickVanBalkom"); // Ivy
+		add("EfficientStorage", "RickVanBalkom"); // Ivy
+		add("GraphViz", "RickVanBalkom"); // Ivy
+		add("Log", "RickVanBalkom"); // Ivy
+		add("PetriNets", "RickVanBalkom"); // Ivy
+		add("Saxon", "RickVanBalkom"); // Ivy
+		add("Widgets", "RickVanBalkom"); // Ivy
+		add("lib", "RickVerhulst"); // Packagelib
+		add("Log", "RickVerhulst"); // Packagelib
+		add("lz4-1.3", "RickVerhulst"); // Packagelib
+		add("mapdb-1.0.7", "RickVerhulst"); // Packagelib
+		add("Widgets", "RickVerhulst"); // Packagelib
+		add("ApacheUtils", "RickVerhulst"); // Ivy
+		add("BasicUtils", "RickVerhulst"); // Ivy
+		add("Log", "RickVerhulst"); // Ivy
+		add("Saxon", "RickVerhulst"); // Ivy
+		add("Widgets", "RickVerhulst"); // Ivy
+		add("EstablishedPackages", "RunnerUpPackages"); // Packagelib
+		add("BasicUtils", "ScientificExperiments"); // Packagelib
+		add("ApacheUtils", "Security"); // Ivy
+		add("BasicUtils", "Security"); // Ivy
+		add("EfficientStorage", "Security"); // Ivy
+		add("Log", "Security"); // Ivy
+		add("PetriNets", "Security"); // Ivy
+		add("PNetReplayer", "Security"); // Ivy
+		add("Saxon", "Security"); // Ivy
+		add("Widgets", "Security"); // Ivy
+		add("BasicUtils", "SelectivePRepair"); // Packagelib
+		add("EfficientStorage", "SelectivePRepair"); // Packagelib
+		add("Log", "SelectivePRepair"); // Packagelib
+		add("LpSolve", "SelectivePRepair"); // Packagelib
+		add("PartialOrderReplayer", "SelectivePRepair"); // Packagelib
+		add("PetriNets", "SelectivePRepair"); // Packagelib
+		add("PNetReplayer", "SelectivePRepair"); // Packagelib
+		add("Widgets", "SelectivePRepair"); // Packagelib
+		add("BasicUtils", "SergioHernandez"); // Packagelib
+		add("HeuristicsMiner", "SergioHernandez"); // Packagelib
+		add("InductiveMiner", "SergioHernandez"); // Packagelib
+		add("Log", "SergioHernandez"); // Packagelib
+		add("PetriNets", "SergioHernandez"); // Packagelib
+		add("ProcessTree", "SergioHernandez"); // Packagelib
+		add("Widgets", "SergioHernandez"); // Packagelib
+		add("XESLite", "SergioHernandez"); // Packagelib
+		add("ApacheUtils", "SergioHernandez"); // Ivy
+		add("BasicUtils", "SergioHernandez"); // Ivy
+		add("BPMN", "SergioHernandez"); // Ivy
+		add("EPC", "SergioHernandez"); // Ivy
+		add("InductiveMiner", "SergioHernandez"); // Ivy
+		add("Log", "SergioHernandez"); // Ivy
+		add("PetriNets", "SergioHernandez"); // Ivy
+		add("PNetReplayer", "SergioHernandez"); // Ivy
+		add("ProcessTree", "SergioHernandez"); // Ivy
+		add("Properties", "SergioHernandez"); // Ivy
+		add("PTConversions", "SergioHernandez"); // Ivy
+		add("Saxon", "SergioHernandez"); // Ivy
+		add("Widgets", "SergioHernandez"); // Ivy
+		add("XESLite", "SergioHernandez"); // Ivy
+		add("YAWL", "SergioHernandez"); // Ivy
+		add("Log", "ServiceTech"); // Packagelib
+		add("PetriNets", "ServiceTech"); // Packagelib
+		add("TransitionSystems", "ServiceTech"); // Packagelib
+		add("ApacheUtils", "ShengnanGuo"); // Ivy
+		add("BasicUtils", "ShengnanGuo"); // Ivy
+		add("BPMN", "ShengnanGuo"); // Ivy
+		add("DottedChart2", "ShengnanGuo"); // Ivy
+		add("DottedChart", "ShengnanGuo"); // Ivy
+		add("EfficientStorage", "ShengnanGuo"); // Ivy
+		add("EPC", "ShengnanGuo"); // Ivy
+		add("EvolutionaryTreeMiner", "ShengnanGuo"); // Ivy
+		add("Flex", "ShengnanGuo"); // Ivy
+		add("Fuzzy", "ShengnanGuo"); // Ivy
+		add("GraphViz", "ShengnanGuo"); // Ivy
+		add("HeuristicsMiner", "ShengnanGuo"); // Ivy
+		add("InductiveMiner", "ShengnanGuo"); // Ivy
+		add("InductiveVisualMiner", "ShengnanGuo"); // Ivy
+		add("InteractiveVisualization", "ShengnanGuo"); // Ivy
+		add("LogAbstractions", "ShengnanGuo"); // Ivy
+		add("LogDialog", "ShengnanGuo"); // Ivy
+		add("Log", "ShengnanGuo"); // Ivy
+		add("LogMetrics", "ShengnanGuo"); // Ivy
+		add("LpSolve", "ShengnanGuo"); // Ivy
+		add("LTLChecker", "ShengnanGuo"); // Ivy
+		add("PetriNets", "ShengnanGuo"); // Ivy
+		add("PNetReplayer", "ShengnanGuo"); // Ivy
+		add("ProcessTree", "ShengnanGuo"); // Ivy
+		add("Properties", "ShengnanGuo"); // Ivy
+		add("PTConversions", "ShengnanGuo"); // Ivy
+		add("PTMerge", "ShengnanGuo"); // Ivy
+		add("Saxon", "ShengnanGuo"); // Ivy
+		add("SocialNetwork", "ShengnanGuo"); // Ivy
+		add("Widgets", "ShengnanGuo"); // Ivy
+		add("XESLite", "ShengnanGuo"); // Ivy
+		add("YAWL", "ShengnanGuo"); // Ivy
+		add("BasicUtils", "SignatureDiscovery"); // Packagelib
+		add("Log", "SignatureDiscovery"); // Packagelib
+		add("Log", "SimpleLogOperations"); // Packagelib
+		add("ApacheUtils", "SLog"); // Ivy
+		add("BasicUtils", "SLog"); // Ivy
+		add("Log", "SLog"); // Ivy
+		add("Saxon", "SLog"); // Ivy
+		add("Widgets", "SLog"); // Ivy
+		add("Log", "SocialNetwork"); // Packagelib
+		add("BasicUtils", "Specifact"); // Packagelib
+		add("EfficientStorage", "Specifact"); // Packagelib
+		add("EfficientStorageUtils", "Specifact"); // Packagelib
+		add("LogAbstractions", "Specifact"); // Packagelib
+		add("Log", "Specifact"); // Packagelib
+		add("PetriNets", "Specifact"); // Packagelib
+		add("PNAnalysis", "Specifact"); // Packagelib
+		add("PNetReplayer", "Specifact"); // Packagelib
+		add("SLog", "Specifact"); // Packagelib
+		add("TransitionSystems", "Specifact"); // Packagelib
+		add("Widgets", "Specifact"); // Packagelib
+		add("Log", "StagedProcessFlows"); // Packagelib
+		add("OpenXES", "StagedProcessFlows"); // Packagelib
+		add("OpenXES-XStream", "StagedProcessFlows"); // Packagelib
+		add("Widgets", "StagedProcessFlows"); // Packagelib
+		add("ApacheUtils", "StagedProcessFlows"); // Ivy
+		add("BasicUtils", "StagedProcessFlows"); // Ivy
+		add("Log", "StagedProcessFlows"); // Ivy
+		add("Saxon", "StagedProcessFlows"); // Ivy
+		add("Widgets", "StagedProcessFlows"); // Ivy
+		add("ApacheUtils", "Statechart"); // Ivy
+		add("BasicUtils", "Statechart"); // Ivy
+		add("GraphViz", "Statechart"); // Ivy
+		add("InductiveMiner", "Statechart"); // Ivy
+		add("Log", "Statechart"); // Ivy
+		add("PetriNets", "Statechart"); // Ivy
+		add("PNetReplayer", "Statechart"); // Ivy
+		add("ProcessTree", "Statechart"); // Ivy
+		add("Properties", "Statechart"); // Ivy
+		add("Saxon", "Statechart"); // Ivy
+		add("Widgets", "Statechart"); // Ivy
+		add("ModelRepair", "StochasticPetriNets"); // Packagelib
+		add("old_dependencies.txt", "StochasticPetriNets"); // Packagelib
+		add("ApacheUtils", "StochasticPetriNets"); // Ivy
+		add("BasicUtils", "StochasticPetriNets"); // Ivy
+		add("BPMN", "StochasticPetriNets"); // Ivy
+		add("EfficientStorage", "StochasticPetriNets"); // Ivy
+		add("EPC", "StochasticPetriNets"); // Ivy
+		add("EvolutionaryTreeMiner", "StochasticPetriNets"); // Ivy
+		add("ILPMiner", "StochasticPetriNets"); // Ivy
+		add("InductiveMiner", "StochasticPetriNets"); // Ivy
+		add("Log", "StochasticPetriNets"); // Ivy
+		add("LPEngine", "StochasticPetriNets"); // Ivy
+		add("LpSolve", "StochasticPetriNets"); // Ivy
+		add("ModelRepair", "StochasticPetriNets"); // Ivy
+		add("PetriNets", "StochasticPetriNets"); // Ivy
+		add("PNetAlignmentAnalysis", "StochasticPetriNets"); // Ivy
+		add("PNetReplayer", "StochasticPetriNets"); // Ivy
+		add("ProcessTree", "StochasticPetriNets"); // Ivy
+		add("Properties", "StochasticPetriNets"); // Ivy
+		add("PTConversions", "StochasticPetriNets"); // Ivy
+		add("PTMerge", "StochasticPetriNets"); // Ivy
+		add("Saxon", "StochasticPetriNets"); // Ivy
+		add("TransitionSystems", "StochasticPetriNets"); // Ivy
+		add("Widgets", "StochasticPetriNets"); // Ivy
+		add("XESLite", "StochasticPetriNets"); // Ivy
+		add("YAWL", "StochasticPetriNets"); // Ivy
+		add("ApacheUtils", "Stream"); // Ivy
+		add("BasicUtils", "Stream"); // Ivy
+		add("Widgets", "Stream"); // Ivy
+		add("AcceptingPetriNet", "StreamAlphaMiner"); // Ivy
+		add("AlphaMiner", "StreamAlphaMiner"); // Ivy
+		add("ApacheUtils", "StreamAlphaMiner"); // Ivy
+		add("BasicUtils", "StreamAlphaMiner"); // Ivy
+		add("CPNet", "StreamAlphaMiner"); // Ivy
+		add("EMF", "StreamAlphaMiner"); // Ivy
+		add("EventStream", "StreamAlphaMiner"); // Ivy
+		add("LogAbstractions", "StreamAlphaMiner"); // Ivy
+		add("Log", "StreamAlphaMiner"); // Ivy
+		add("PetriNets", "StreamAlphaMiner"); // Ivy
+		add("ProcessTree", "StreamAlphaMiner"); // Ivy
+		add("Saxon", "StreamAlphaMiner"); // Ivy
+		add("Stream", "StreamAlphaMiner"); // Ivy
+		add("Widgets", "StreamAlphaMiner"); // Ivy
+		add("AcceptingPetriNet", "StreamAnalysis"); // Ivy
+		add("ApacheUtils", "StreamAnalysis"); // Ivy
+		add("BasicUtils", "StreamAnalysis"); // Ivy
+		add("CPNet", "StreamAnalysis"); // Ivy
+		add("EfficientStorage", "StreamAnalysis"); // Ivy
+		add("EMF", "StreamAnalysis"); // Ivy
+		add("ETConformance", "StreamAnalysis"); // Ivy
+		add("EventStream", "StreamAnalysis"); // Ivy
+		add("GraphViz", "StreamAnalysis"); // Ivy
+		add("InductiveMiner", "StreamAnalysis"); // Ivy
+		add("LogAbstractions", "StreamAnalysis"); // Ivy
+		add("Log", "StreamAnalysis"); // Ivy
+		add("LPEngine", "StreamAnalysis"); // Ivy
+		add("LpSolve", "StreamAnalysis"); // Ivy
+		add("Murata", "StreamAnalysis"); // Ivy
+		add("PetriNets", "StreamAnalysis"); // Ivy
+		add("PNAnalysis", "StreamAnalysis"); // Ivy
+		add("PNetAlignmentAnalysis", "StreamAnalysis"); // Ivy
+		add("PNetReplayer", "StreamAnalysis"); // Ivy
+		add("ProcessTree", "StreamAnalysis"); // Ivy
+		add("ProjectedRecallAndPrecision", "StreamAnalysis"); // Ivy
+		add("Properties", "StreamAnalysis"); // Ivy
+		add("Saxon", "StreamAnalysis"); // Ivy
+		add("Stream", "StreamAnalysis"); // Ivy
+		add("TransitionSystems", "StreamAnalysis"); // Ivy
+		add("Widgets", "StreamAnalysis"); // Ivy
+		add("XESLite", "StreamAnalysis"); // Ivy
+		add("BasicUtils", "StreamDeclareDiscovery"); // Packagelib
+		add("DeclareAnalyzer", "StreamDeclareDiscovery"); // Packagelib
+		add("DeclareMiner", "StreamDeclareDiscovery"); // Packagelib
+		add("DeclareMinerVisualizer", "StreamDeclareDiscovery"); // Packagelib
+		add("DeclareVisualizer", "StreamDeclareDiscovery"); // Packagelib
+		add("Log", "StreamDeclareDiscovery"); // Packagelib
+		add("OperationalSupport", "StreamDeclareDiscovery"); // Packagelib
+		add("Widgets", "StreamDeclareDiscovery"); // Packagelib
+		add("CNet", "StreamHeuristicsMiner"); // Packagelib
+		add("CNetReplayer", "StreamHeuristicsMiner"); // Packagelib
+		add("EfficientStorage", "StreamHeuristicsMiner"); // Packagelib
+		add("ETConformance", "StreamHeuristicsMiner"); // Packagelib
+		add("HeuristicsMiner", "StreamHeuristicsMiner"); // Packagelib
+		add("InteractiveVisualization", "StreamHeuristicsMiner"); // Packagelib
+		add("LogDialog", "StreamHeuristicsMiner"); // Packagelib
+		add("Log", "StreamHeuristicsMiner"); // Packagelib
+		add("OperationalSupport", "StreamHeuristicsMiner"); // Packagelib
+		add("PetriNets", "StreamHeuristicsMiner"); // Packagelib
+		add("PNetReplayer", "StreamHeuristicsMiner"); // Packagelib
+		add("Replayer", "StreamHeuristicsMiner"); // Packagelib
+		add("Stream", "StreamHeuristicsMiner"); // Packagelib
+		add("Widgets", "StreamHeuristicsMiner"); // Packagelib
+		add("DivideAndConquer", "StreamILPMiner"); // Packagelib
+		add("EventStream", "StreamILPMiner"); // Packagelib
+		add("LogAbstractions", "StreamILPMiner"); // Packagelib
+		add("Log", "StreamILPMiner"); // Packagelib
+		add("LPEngine", "StreamILPMiner"); // Packagelib
+		add("LpSolve", "StreamILPMiner"); // Packagelib
+		add("PetriNets", "StreamILPMiner"); // Packagelib
+		add("Stream", "StreamILPMiner"); // Packagelib
+		add("AcceptingPetriNet", "StreamILPMiner"); // Ivy
+		add("ActivityClusterArrayCreator", "StreamILPMiner"); // Ivy
+		add("ActivityClusterArray", "StreamILPMiner"); // Ivy
+		add("ApacheUtils", "StreamILPMiner"); // Ivy
+		add("BasicUtils", "StreamILPMiner"); // Ivy
+		add("CausalActivityGraphCreator", "StreamILPMiner"); // Ivy
+		add("CausalActivityGraph", "StreamILPMiner"); // Ivy
+		add("CausalActivityMatrix", "StreamILPMiner"); // Ivy
+		add("CausalActivityMatrixMiner", "StreamILPMiner"); // Ivy
+		add("CPNet", "StreamILPMiner"); // Ivy
+		add("EfficientStorage", "StreamILPMiner"); // Ivy
+		add("EMF", "StreamILPMiner"); // Ivy
+		add("ETConformance", "StreamILPMiner"); // Ivy
+		add("EventStream", "StreamILPMiner"); // Ivy
+		add("Fuzzy", "StreamILPMiner"); // Ivy
+		add("GraphVisualizers", "StreamILPMiner"); // Ivy
+		add("GraphViz", "StreamILPMiner"); // Ivy
+		add("HybridILPMiner", "StreamILPMiner"); // Ivy
+		add("LogAbstractions", "StreamILPMiner"); // Ivy
+		add("Log", "StreamILPMiner"); // Ivy
+		add("LPEngine", "StreamILPMiner"); // Ivy
+		add("LpSolve", "StreamILPMiner"); // Ivy
+		add("Murata", "StreamILPMiner"); // Ivy
+		add("PetriNets", "StreamILPMiner"); // Ivy
+		add("PNetAlignmentAnalysis", "StreamILPMiner"); // Ivy
+		add("PNetReplayer", "StreamILPMiner"); // Ivy
+		add("ProcessTree", "StreamILPMiner"); // Ivy
+		add("Properties", "StreamILPMiner"); // Ivy
+		add("Saxon", "StreamILPMiner"); // Ivy
+		add("Stream", "StreamILPMiner"); // Ivy
+		add("TransitionSystems", "StreamILPMiner"); // Ivy
+		add("Widgets", "StreamILPMiner"); // Ivy
+		add("AcceptingPetriNet", "StreamInductiveMiner"); // Ivy
+		add("ApacheUtils", "StreamInductiveMiner"); // Ivy
+		add("BasicUtils", "StreamInductiveMiner"); // Ivy
+		add("BPMN", "StreamInductiveMiner"); // Ivy
+		add("CPNet", "StreamInductiveMiner"); // Ivy
+		add("EMF", "StreamInductiveMiner"); // Ivy
+		add("EPC", "StreamInductiveMiner"); // Ivy
+		add("EventStream", "StreamInductiveMiner"); // Ivy
+		add("InductiveMiner", "StreamInductiveMiner"); // Ivy
+		add("LogAbstractions", "StreamInductiveMiner"); // Ivy
+		add("Log", "StreamInductiveMiner"); // Ivy
+		add("PetriNets", "StreamInductiveMiner"); // Ivy
+		add("PNetReplayer", "StreamInductiveMiner"); // Ivy
+		add("ProcessTree", "StreamInductiveMiner"); // Ivy
+		add("Properties", "StreamInductiveMiner"); // Ivy
+		add("PTConversions", "StreamInductiveMiner"); // Ivy
+		add("Saxon", "StreamInductiveMiner"); // Ivy
+		add("Stream", "StreamInductiveMiner"); // Ivy
+		add("Widgets", "StreamInductiveMiner"); // Ivy
+		add("YAWL", "StreamInductiveMiner"); // Ivy
+		add("AcceptingPetriNet", "StreamSocialNetworks"); // Ivy
+		add("ApacheUtils", "StreamSocialNetworks"); // Ivy
+		add("BasicUtils", "StreamSocialNetworks"); // Ivy
+		add("CPNet", "StreamSocialNetworks"); // Ivy
+		add("EMF", "StreamSocialNetworks"); // Ivy
+		add("EventStream", "StreamSocialNetworks"); // Ivy
+		add("GraphViz", "StreamSocialNetworks"); // Ivy
+		add("LogAbstractions", "StreamSocialNetworks"); // Ivy
+		add("Log", "StreamSocialNetworks"); // Ivy
+		add("PetriNets", "StreamSocialNetworks"); // Ivy
+		add("ProcessTree", "StreamSocialNetworks"); // Ivy
+		add("Saxon", "StreamSocialNetworks"); // Ivy
+		add("Stream", "StreamSocialNetworks"); // Ivy
+		add("Widgets", "StreamSocialNetworks"); // Ivy
+		add("ApacheUtils", "StructuredMiner"); // Ivy
+		add("BasicUtils", "StructuredMiner"); // Ivy
+		add("Log", "StructuredMiner"); // Ivy
+		add("Saxon", "StructuredMiner"); // Ivy
+		add("Widgets", "StructuredMiner"); // Ivy
+		add("ApacheUtils", "SubTrace"); // Ivy
+		add("BasicUtils", "SubTrace"); // Ivy
+		add("Log", "SubTrace"); // Ivy
+		add("Saxon", "SubTrace"); // Ivy
+		add("Widgets", "SubTrace"); // Ivy
+		add("BasicUtils", "Swimlanes"); // Packagelib
+		add("BPMNConversions", "Swimlanes"); // Packagelib
+		add("BPMN", "Swimlanes"); // Packagelib
+		add("DataPetriNets", "Swimlanes"); // Packagelib
+		add("Log", "Swimlanes"); // Packagelib
+		add("PetriNets", "Swimlanes"); // Packagelib
+		add("Widgets", "Swimlanes"); // Packagelib
+		add("BasicUtils", "TimeBar"); // Packagelib
+		add("Log", "TimeBar"); // Packagelib
+		add("Widgets", "TimeBar"); // Packagelib
+		add("BasicUtils", "TonatiuhTapiaFlores"); // Packagelib
+		add("AcceptingPetriNetClassicalReductor", "TonatiuhTapiaFlores"); // Ivy
+		add("AcceptingPetriNetDecomposer", "TonatiuhTapiaFlores"); // Ivy
+		add("AcceptingPetriNet", "TonatiuhTapiaFlores"); // Ivy
+		add("AcceptingPetriNetMiner", "TonatiuhTapiaFlores"); // Ivy
+		add("AcceptingPetriNetRedundantPlacesReductor", "TonatiuhTapiaFlores"); // Ivy
+		add("ActivityClusterArrayCreator", "TonatiuhTapiaFlores"); // Ivy
+		add("ActivityClusterArrayExtractor", "TonatiuhTapiaFlores"); // Ivy
+		add("ActivityClusterArray", "TonatiuhTapiaFlores"); // Ivy
+		add("AlphaMiner", "TonatiuhTapiaFlores"); // Ivy
+		add("ApacheUtils", "TonatiuhTapiaFlores"); // Ivy
+		add("BasicUtils", "TonatiuhTapiaFlores"); // Ivy
+		add("CausalActivityGraphCreator", "TonatiuhTapiaFlores"); // Ivy
+		add("CausalActivityGraph", "TonatiuhTapiaFlores"); // Ivy
+		add("CausalActivityMatrixCreator", "TonatiuhTapiaFlores"); // Ivy
+		add("CausalActivityMatrix", "TonatiuhTapiaFlores"); // Ivy
+		add("CausalActivityMatrixMiner", "TonatiuhTapiaFlores"); // Ivy
+		add("DecomposedMiner", "TonatiuhTapiaFlores"); // Ivy
+		add("DecomposedReplayer", "TonatiuhTapiaFlores"); // Ivy
+		add("DivideAndConquer", "TonatiuhTapiaFlores"); // Ivy
+		add("EfficientStorage", "TonatiuhTapiaFlores"); // Ivy
+		add("ETConformance", "TonatiuhTapiaFlores"); // Ivy
+		add("EvolutionaryTreeMiner", "TonatiuhTapiaFlores"); // Ivy
+		add("Flex", "TonatiuhTapiaFlores"); // Ivy
+		add("Fuzzy", "TonatiuhTapiaFlores"); // Ivy
+		add("GraphVisualizers", "TonatiuhTapiaFlores"); // Ivy
+		add("GraphViz", "TonatiuhTapiaFlores"); // Ivy
+		add("HeuristicsMiner", "TonatiuhTapiaFlores"); // Ivy
+		add("HybridILPMiner", "TonatiuhTapiaFlores"); // Ivy
+		add("ILPMiner", "TonatiuhTapiaFlores"); // Ivy
+		add("InductiveMiner", "TonatiuhTapiaFlores"); // Ivy
+		add("InteractiveVisualization", "TonatiuhTapiaFlores"); // Ivy
+		add("LogAbstractions", "TonatiuhTapiaFlores"); // Ivy
+		add("LogAlignment", "TonatiuhTapiaFlores"); // Ivy
+		add("LogDecomposer", "TonatiuhTapiaFlores"); // Ivy
+		add("LogDialog", "TonatiuhTapiaFlores"); // Ivy
+		add("Log", "TonatiuhTapiaFlores"); // Ivy
+		add("LPEngine", "TonatiuhTapiaFlores"); // Ivy
+		add("LpSolve", "TonatiuhTapiaFlores"); // Ivy
+		add("Murata", "TonatiuhTapiaFlores"); // Ivy
+		add("PetriNets", "TonatiuhTapiaFlores"); // Ivy
+		add("PNAnalysis", "TonatiuhTapiaFlores"); // Ivy
+		add("PNetAlignmentAnalysis", "TonatiuhTapiaFlores"); // Ivy
+		add("PNetReplayer", "TonatiuhTapiaFlores"); // Ivy
+		add("ProcessTree", "TonatiuhTapiaFlores"); // Ivy
+		add("Properties", "TonatiuhTapiaFlores"); // Ivy
+		add("PTMerge", "TonatiuhTapiaFlores"); // Ivy
+		add("Saxon", "TonatiuhTapiaFlores"); // Ivy
+		add("TransitionSystems", "TonatiuhTapiaFlores"); // Ivy
+		add("Widgets", "TonatiuhTapiaFlores"); // Ivy
+		add("XESLite", "TonatiuhTapiaFlores"); // Ivy
+		add("Log", "TraceAlignment"); // Packagelib
+		add("BasicUtils", "TraceClustering"); // Packagelib
+		add("Log", "TraceClustering"); // Packagelib
+		add("Widgets", "TraceClustering"); // Packagelib
+		add("ApacheUtils", "TraceClustering"); // Ivy
+		add("BasicUtils", "TraceClustering"); // Ivy
+		add("Log", "TraceClustering"); // Ivy
+		add("Saxon", "TraceClustering"); // Ivy
+		add("Widgets", "TraceClustering"); // Ivy
+		add("BasicUtils", "TraceMatching"); // Packagelib
+		add("EfficientStorage", "TraceMatching"); // Packagelib
+		add("ETConformance", "TraceMatching"); // Packagelib
+		add("EvolutionaryTreeMiner", "TraceMatching"); // Packagelib
+		add("PartialOrderReplayer", "TraceMatching"); // Packagelib
+		add("AcceptingPetriNet", "TraceMatching"); // Ivy
+		add("ActivityClusterArrayCreator", "TraceMatching"); // Ivy
+		add("ActivityClusterArray", "TraceMatching"); // Ivy
+		add("ApacheUtils", "TraceMatching"); // Ivy
+		add("BasicUtils", "TraceMatching"); // Ivy
+		add("CausalActivityGraphCreator", "TraceMatching"); // Ivy
+		add("CausalActivityGraph", "TraceMatching"); // Ivy
+		add("CausalActivityMatrix", "TraceMatching"); // Ivy
+		add("CausalActivityMatrixMiner", "TraceMatching"); // Ivy
+		add("EfficientStorage", "TraceMatching"); // Ivy
+		add("ETConformance", "TraceMatching"); // Ivy
+		add("EvolutionaryTreeMiner", "TraceMatching"); // Ivy
+		add("Fuzzy", "TraceMatching"); // Ivy
+		add("GraphVisualizers", "TraceMatching"); // Ivy
+		add("GraphViz", "TraceMatching"); // Ivy
+		add("HybridILPMiner", "TraceMatching"); // Ivy
+		add("InductiveMiner", "TraceMatching"); // Ivy
+		add("InductiveVisualMiner", "TraceMatching"); // Ivy
+		add("LogAbstractions", "TraceMatching"); // Ivy
+		add("Log", "TraceMatching"); // Ivy
+		add("LPEngine", "TraceMatching"); // Ivy
+		add("LpSolve", "TraceMatching"); // Ivy
+		add("Murata", "TraceMatching"); // Ivy
+		add("PetriNets", "TraceMatching"); // Ivy
+		add("PNetAlignmentAnalysis", "TraceMatching"); // Ivy
+		add("PNetReplayer", "TraceMatching"); // Ivy
+		add("ProcessTree", "TraceMatching"); // Ivy
+		add("Properties", "TraceMatching"); // Ivy
+		add("PTMerge", "TraceMatching"); // Ivy
+		add("Saxon", "TraceMatching"); // Ivy
+		add("TransitionSystems", "TraceMatching"); // Ivy
+		add("Widgets", "TraceMatching"); // Ivy
+		add("ApacheUtils", "TraceReplayer"); // Ivy
+		add("BasicUtils", "TraceReplayer"); // Ivy
+		add("Log", "TraceReplayer"); // Ivy
+		add("Saxon", "TraceReplayer"); // Ivy
+		add("Widgets", "TraceReplayer"); // Ivy
+		add("Animation", "TransitionSystems"); // Packagelib
+		add("BasicUtils", "TransitionSystems"); // Packagelib
+		add("Log", "TransitionSystems"); // Packagelib
+		add("OSService", "TransitionSystems"); // Packagelib
+		add("Widgets", "TransitionSystems"); // Packagelib
+		add("ApacheUtils", "TS2DEVS"); // Ivy
+		add("BasicUtils", "TS2DEVS"); // Ivy
+		add("Log", "TS2DEVS"); // Ivy
+		add("Saxon", "TS2DEVS"); // Ivy
+		add("TransitionSystems", "TS2DEVS"); // Ivy
+		add("Widgets", "TS2DEVS"); // Ivy
+		add("Petrify", "TSPetrinet"); // Packagelib
+		add("PetriNets", "TSPetrinet"); // Packagelib
+		add("TransitionSystems", "TSPetrinet"); // Packagelib
+		add("Animation", "Uma"); // Packagelib
+		add("BasicUtils", "Uma"); // Packagelib
+		add("EfficientStorage", "Uma"); // Packagelib
+		add("ILPMiner", "Uma"); // Packagelib
+		add("InteractiveVisualization", "Uma"); // Packagelib
+		add("LogAbstractions", "Uma"); // Packagelib
+		add("LogDialog", "Uma"); // Packagelib
+		add("Log", "Uma"); // Packagelib
+		add("LpSolve", "Uma"); // Packagelib
+		add("OSService", "Uma"); // Packagelib
+		add("PetriNets", "Uma"); // Packagelib
+		add("PNetReplayer", "Uma"); // Packagelib
+		add("TransitionSystems", "Uma"); // Packagelib
+		add("Widgets", "Uma"); // Packagelib
+		add("ApacheUtils", "VideoLectureAnalysis"); // Ivy
+		add("BasicUtils", "VideoLectureAnalysis"); // Ivy
+		add("EfficientStorage", "VideoLectureAnalysis"); // Ivy
+		add("GraphViz", "VideoLectureAnalysis"); // Ivy
+		add("Log", "VideoLectureAnalysis"); // Ivy
+		add("Saxon", "VideoLectureAnalysis"); // Ivy
+		add("Widgets", "VideoLectureAnalysis"); // Ivy
+		add("ApacheUtils", "VisualPetriNetAnalyzer"); // Ivy
+		add("BasicUtils", "VisualPetriNetAnalyzer"); // Ivy
+		add("Log", "VisualPetriNetAnalyzer"); // Ivy
+		add("PetriNets", "VisualPetriNetAnalyzer"); // Ivy
+		add("Saxon", "VisualPetriNetAnalyzer"); // Ivy
+		add("Widgets", "VisualPetriNetAnalyzer"); // Ivy
+		add("PetriNets", "Woflan"); // Packagelib
+		add("ApacheUtils", "XESAlignmentExtension"); // Ivy
+		add("BasicUtils", "XESAlignmentExtension"); // Ivy
+		add("Log", "XESAlignmentExtension"); // Ivy
+		add("Saxon", "XESAlignmentExtension"); // Ivy
+		add("Widgets", "XESAlignmentExtension"); // Ivy
+		add("ApacheUtils", "XESLite"); // Ivy
+		add("BasicUtils", "XESLite"); // Ivy
+		add("Log", "XESLite"); // Ivy
+		add("Saxon", "XESLite"); // Ivy
+		add("Widgets", "XESLite"); // Ivy
+		add("Log", "YAWL"); // Packagelib
+		add("Performance", "YAWL"); // Packagelib
+		add("Widgets", "YAWL"); // Packagelib
+	}
+}

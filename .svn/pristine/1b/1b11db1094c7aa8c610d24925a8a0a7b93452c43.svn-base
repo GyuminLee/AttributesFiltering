@@ -1,0 +1,113 @@
+package org.processmining.ericverbeek.algorithms;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+
+import org.processmining.ericverbeek.models.DeselEsparzaPlaceReduction;
+import org.processmining.ericverbeek.models.DeselEsparzaReduction;
+import org.processmining.ericverbeek.workspaces.DeselEsparzaReductionWorkspace;
+import org.processmining.models.graphbased.directed.petrinet.PetrinetNode;
+import org.processmining.models.graphbased.directed.petrinet.elements.Place;
+
+import nl.tue.astar.util.ilp.LPMatrix;
+import nl.tue.astar.util.ilp.LPMatrixException;
+
+public class DeselEsparzaPlaceFinderAlgorithm implements DeselEsparzaFinderAlgorithm {
+
+	private int[] variables;
+
+	public Collection<DeselEsparzaReduction> apply(DeselEsparzaReductionWorkspace ws) {
+		Collection<DeselEsparzaReduction> reductions = new ArrayList<DeselEsparzaReduction>();
+
+		if (ws.places.size() > 1) {
+			for (Place candidatePlace : ws.places) {
+				if (fastCheck(ws, candidatePlace)) {
+					try {
+						double[] nativeSolution = solveMatrix(ws, candidatePlace);
+						if (nativeSolution != null) {
+							Map<Place, Double> solution = new HashMap<Place, Double>();
+							for (Place place : ws.places) {
+								if (nativeSolution[ws.tMap.get(place)] > 0.0) {
+									solution.put(place, nativeSolution[ws.tMap.get(place)]);
+								}
+							}
+							int size = 0;
+							for (int i = 0; i < nativeSolution.length; i++) {
+								if (nativeSolution[i] > 0.0) {
+									size++;
+								}
+							}
+							for (Place place : ws.places) {
+								if (nativeSolution[ws.pMap.get(place)] > 0.0) {
+									solution.put(place, nativeSolution[ws.pMap.get(place)]);
+								}
+							}
+							if (solution.keySet().size() == size) {
+								if (!ws.presets.get(candidatePlace).isEmpty()
+										|| !ws.postsets.get(candidatePlace).isEmpty()) {
+									DeselEsparzaPlaceReduction reduction = new DeselEsparzaPlaceReduction();
+									reduction.setPlace(candidatePlace);
+									reduction.setPlaces(solution.keySet());
+									reductions.add(reduction);
+									if (reduction.hasOptimalScore(ws)) {
+										return reductions;
+									}
+								}
+							}
+						}
+					} catch (LPMatrixException e) {
+						e.printStackTrace();
+					}
+				}
+			}
+		}
+
+		return reductions;
+	}
+
+	private boolean fastCheck(DeselEsparzaReductionWorkspace ws, Place place) {
+		for (PetrinetNode node : ws.presets.get(place)) {
+			if (ws.postsets.get(node).size() < 2) {
+				return false;
+			}
+		}
+		for (PetrinetNode node : ws.postsets.get(place)) {
+			if (ws.presets.get(node).size() < 2) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	private double[] solveMatrix(DeselEsparzaReductionWorkspace ws, Place place) throws LPMatrixException {
+		LPMatrix<?> matrix = new LPMatrix.SPARSE.LPSOLVE(ws.nofPlaces + ws.nofTransitions, ws.nofPlaces);
+		int row = 0;
+
+		for (int p = 0; p < ws.nofPlaces; p++) {
+			matrix.adjustMat(row, p, 1.0);
+			matrix.setConstrType(row, (p == ws.pMap.get(place) ? LPMatrix.EQ : LPMatrix.GE));
+			matrix.setRh(row, 0.0);
+			row++;
+		}
+
+		for (int t = 0; t < ws.nofTransitions; t++) {
+			for (int p = 0; p < ws.nofPlaces; p++) {
+				if (ws.incidenceMatrix[t][p] != 0) {
+					matrix.adjustMat(row, p, ws.incidenceMatrix[t][p]);
+				}
+			}
+			matrix.setConstrType(row, LPMatrix.EQ);
+			matrix.setRh(row, ws.incidenceMatrix[ws.pMap.get(place)][t]);
+			row++;
+		}
+
+		double[] solution = new double[ws.nofPlaces];
+		if (matrix.solve(solution) == LPMatrix.INFEASIBLE) {
+			return null;
+		}
+		return solution;
+	}
+
+}

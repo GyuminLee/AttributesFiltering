@@ -1,0 +1,81 @@
+package org.processmining.ericverbeek.algorithms;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+
+import org.processmining.ericverbeek.models.DeselEsparzaReduction;
+import org.processmining.ericverbeek.workspaces.DeselEsparzaReductionWorkspace;
+import org.processmining.framework.util.Pair;
+import org.processmining.models.graphbased.directed.petrinet.PetrinetNode;
+import org.processmining.models.graphbased.directed.petrinet.elements.Place;
+import org.processmining.models.graphbased.directed.petrinet.elements.Transition;
+
+public class DeselEsparzaLayoutAlgorithm {
+
+	private Collection<DeselEsparzaFinderAlgorithm> reductionAlgorithms;
+	private DeselEsparzaReductionWorkspace ws;
+	private DeselEsparzaReduction bestReduction;
+	double bestScore;
+
+	public DeselEsparzaLayoutAlgorithm() {
+		reductionAlgorithms = new ArrayList<DeselEsparzaFinderAlgorithm>();
+		reductionAlgorithms.add(new DeselEsparzaAbstractionFinderAlgorithm());
+		reductionAlgorithms.add(new DeselEsparzaTransitionFinderAlgorithm(false));
+		reductionAlgorithms.add(new DeselEsparzaTransitionFinderAlgorithm(true));
+	}
+
+	public boolean apply(DeselEsparzaReductionWorkspace ws) {
+		this.ws = ws;
+		find();
+		if (bestReduction != null) {
+			System.out.println("[DeselEsparzaLayoutAlgorithm] " + bestScore + " " + bestReduction);
+			bestReduction.apply(ws);
+			return true;
+		}
+		return false;
+	}
+
+	private void find() {
+		bestReduction = null;
+		bestScore = -1.0;
+		for (DeselEsparzaFinderAlgorithm reductionAlgorithm : reductionAlgorithms) {
+			Collection<DeselEsparzaReduction> reductions = reductionAlgorithm.apply(ws);
+			for (DeselEsparzaReduction reduction : reductions) {
+				double score = reduction.score(ws);
+				if (bestScore < score) {
+					bestScore = score;
+					bestReduction = reduction;
+					if (bestScore == 1.0) {
+						return;
+					}
+				}
+			}
+		}
+	}
+	
+	public Map<PetrinetNode,Pair<Double,Double>> layout(DeselEsparzaReductionWorkspace ws) {
+		Map<PetrinetNode,Pair<Double,Double>> layout = new HashMap<PetrinetNode,Pair<Double,Double>>();
+		double y = 0.0;
+		for (Place place : ws.workNet.getNet().getPlaces()) {
+			System.out.println("[DeselEsparzaLayoutAlgorithm] Starting layout on place " + place.getLabel());
+			while (ws.layoutMap.get(place).doSort(false))
+				;
+			ws.layoutMap.get(place).doLayout(layout, new Pair<Double,Double>(0.0, y), false, ws.HSPACE);
+			ws.layoutMap.get(place).doPrint(0);
+			int[] height = ws.layoutMap.get(place).height();
+			y += height[0] + height[1] + ws.VSPACE;
+		}
+		for (Transition transition : ws.workNet.getNet().getTransitions()) {
+			System.out.println("[DeselEsparzaLayoutAlgorithm] Starting layout on transition " + transition.getLabel());
+			while (ws.layoutMap.get(transition).doSort(false))
+				;
+			ws.layoutMap.get(transition).doLayout(layout, new Pair<Double,Double>(0.0, 0.0), false, ws.HSPACE);
+			ws.layoutMap.get(transition).doPrint(0);
+			int[] height = ws.layoutMap.get(transition).height();
+			y += height[0] + height[1] + ws.VSPACE;
+		}
+		return layout;
+	}
+}

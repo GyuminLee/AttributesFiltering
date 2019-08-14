@@ -1,0 +1,49 @@
+package org.processmining.ericverbeek.models;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import org.deckfour.xes.model.XLog;
+import org.processmining.framework.util.HTMLToString;
+
+public class PDC2017TestModel implements HTMLToString {
+
+	private List<Integer> numbers;
+	private List<XLog> aprilLogs;
+	private List<XLog> mayLogs;
+	private List<XLog> juneLogs;
+	private List<PDC2017ConstraintModel> models;
+	
+	public PDC2017TestModel() {
+		numbers = new ArrayList<Integer>();
+		aprilLogs = new ArrayList<XLog>();
+		mayLogs = new ArrayList<XLog>();
+		juneLogs = new ArrayList<XLog>();
+		models = new ArrayList<PDC2017ConstraintModel>();
+	}
+	
+	public void add(int i, XLog aprilLog, XLog mayLog, XLog juneLog,PDC2017ConstraintModel model) {
+		numbers.add(i);
+		aprilLogs.add(aprilLog);
+		mayLogs.add(mayLog);
+		juneLogs.add(juneLog);
+		models.add(model);
+	}
+	
+	public String toHTMLString(boolean includeHTMLTags) {
+		StringBuffer buf = new StringBuffer();
+		if (includeHTMLTags) {
+			buf.append("<html>");
+		}
+		buf.append("<table><tr><th>Number</th><th>April</th><th>May</th><th>June</th></tr>");
+		for (int i = 0; i < numbers.size(); i++) {
+			buf.append("<tr><td>" + numbers.get(i) + "</td><td>" + aprilLogs.get(i).size() + "</td><td>" + mayLogs.get(i).size() + "</td><td>" + juneLogs.get(i).size() + "</td></tr>");
+		}
+		buf.append("</table>");
+		if (includeHTMLTags) {
+			buf.append("</html>");
+		}
+		return buf.toString();
+	}
+
+}

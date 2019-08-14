@@ -1,0 +1,22 @@
+package org.processmining.ericverbeek.parameters;
+
+import java.util.HashSet;
+import java.util.Set;
+
+public class PDC2017VisualizerParameters {
+
+	private Set<String> activities;
+	private Set<PDC2017Visualizer> visualizers;
+
+	public PDC2017VisualizerParameters() {
+		activities = new HashSet<String>();
+		visualizers = new HashSet<PDC2017Visualizer>();
+	}
+	public Set<String> getActivities() {
+		return activities;
+	}
+
+	public Set<PDC2017Visualizer> getVisualizers() {
+		return visualizers;
+	}
+}

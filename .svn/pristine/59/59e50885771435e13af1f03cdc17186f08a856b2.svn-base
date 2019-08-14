@@ -1,0 +1,442 @@
+package org.processmining.ericverbeek.algorithms;
+
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.Set;
+
+import org.deckfour.xes.classification.XEventAndClassifier;
+import org.deckfour.xes.classification.XEventAttributeClassifier;
+import org.deckfour.xes.extension.std.XConceptExtension;
+import org.deckfour.xes.extension.std.XLifecycleExtension;
+import org.deckfour.xes.extension.std.XOrganizationalExtension;
+import org.deckfour.xes.extension.std.XTimeExtension;
+import org.deckfour.xes.factory.XFactoryRegistry;
+import org.deckfour.xes.model.XAttribute;
+import org.deckfour.xes.model.XEvent;
+import org.deckfour.xes.model.XLog;
+import org.deckfour.xes.model.XTrace;
+
+public class XesCertificationFilterAlgorithm {
+
+	/*
+	 * Key names for non-standard attributes
+	 */
+	private final static String NAME = "Key 1";
+	private final static String INSTANCE = "Key 2";
+	private final static String RESOURCE = "Key 3";
+	private final static String TIMESTAMP = "Key 4";
+	private final static String NUMBER = "numberRepairs";
+	private final static String TRANSITION = "Key 6";
+	private final static String GROUP = "{0,1,2} 2Sa!! +1 &lt;x&gt;";
+	private final static String ROLE = "ITEMS:41, #1, o.1.1";
+
+	/*
+	 * Certification levels and flags
+	 */
+	private final static int A1 = 10;
+	private final static int A2 = 11;
+	private final static int B1 = 20;
+	private final static int B2 = 21;
+	private final static int C1 = 30;
+	private final static int C2 = 31;
+	private final static int D1 = 40;
+	private final static int D2 = 41;
+	private final static int X1 = 50;
+	private final static int X2 = 51;
+
+	/*
+	 * To keep the current time offset Time offset is used to have millisecond
+	 * precision for the events
+	 */
+	private int timeOffset;
+
+	/*
+	 * Create a log on the given level/flag (from A1 to X2))
+	 */
+	private XLog apply(XLog log, int level) {
+
+		/*
+		 * Start with an empty time offset
+		 */
+		timeOffset = 0;
+
+		/*
+		 * Create a fresh log
+		 */
+		XLog filteredLog = copy(log);
+
+		boolean useConceptName = (level == A1 || level == A2 || level == B1 || level == B2 || level == C1
+				|| level == C2 || level == D1 || level == D2);
+		boolean useConceptInstance = (level == D1 || level == D2);
+		boolean useConceptExtension = true;
+
+		boolean useLifecycleTransition = (level == A2 || level == B1 || level == B2 || level == C2 || level == D1 || level == D2);
+		boolean useLifecycleExtension = useLifecycleTransition;
+
+		boolean useTimeTimestamp = (level == B1 || level == B2 || level == D1 || level == D2);
+		boolean useTimeExtension = useTimeTimestamp;
+
+		boolean useOrgResource = (level == C1 || level == C2 || level == D1 || level == D2);
+		boolean useOrgGroup = (level == D1 || level == D2);
+		boolean useOrgRole = (level == D1 || level == D2);
+		boolean useOrgExtension = useOrgResource || useOrgGroup || useOrgRole;
+
+		boolean useClassifier = (level == A2 || level == B2 || level == C2 || level == D2 || level == X2);
+
+		boolean useName = (level == X1 || level == X2);
+		boolean useTransition = (level == X1 || level == X2);
+		boolean useResource = (level == X1 || level == X2);
+		boolean useGroup = (level == X1 || level == X2);
+		boolean useRole = (level == X1 || level == X2);
+		boolean useTimestamp = (level == X1 || level == X2);
+		boolean useInstance = (level == X1 || level == X2);
+
+		/*
+		 * Add extensions
+		 */
+		if (useConceptExtension) {
+			filteredLog.getExtensions().add(XConceptExtension.instance());
+		}
+		if (useLifecycleExtension) {
+			filteredLog.getExtensions().add(XLifecycleExtension.instance());
+		}
+		if (useOrgExtension) {
+			filteredLog.getExtensions().add(XOrganizationalExtension.instance());
+		}
+		if (useTimeExtension) {
+			filteredLog.getExtensions().add(XTimeExtension.instance());
+		}
+
+		/*
+		 * Add global attributes
+		 */
+		filteredLog.getGlobalTraceAttributes().add(XConceptExtension.ATTR_NAME);
+		if (useConceptName) {
+			filteredLog.getGlobalEventAttributes().add(XConceptExtension.ATTR_NAME);
+		} else if (useName) {
+			filteredLog.getGlobalEventAttributes().add(
+					XFactoryRegistry.instance().currentDefault().createAttributeLiteral(NAME, "UNKNOWN", null));
+		}
+		if (useConceptInstance) {
+			filteredLog.getGlobalEventAttributes().add(XConceptExtension.ATTR_INSTANCE);
+		}
+		if (useLifecycleTransition) {
+			filteredLog.getGlobalEventAttributes().add(XLifecycleExtension.ATTR_TRANSITION);
+		} else if (useTransition) {
+			filteredLog.getGlobalEventAttributes().add(
+					XFactoryRegistry.instance().currentDefault().createAttributeLiteral(TRANSITION, "UNKNOWN", null));
+		}
+		if (useOrgResource) {
+			filteredLog.getGlobalEventAttributes().add(XOrganizationalExtension.ATTR_RESOURCE);
+		} else if (useResource) {
+			filteredLog.getGlobalEventAttributes().add(
+					XFactoryRegistry.instance().currentDefault().createAttributeLiteral(RESOURCE, "UNKNOWN", null));
+		}
+		if (useOrgGroup) {
+			filteredLog.getGlobalEventAttributes().add(XOrganizationalExtension.ATTR_GROUP);
+		} else if (useGroup) {
+			filteredLog.getGlobalEventAttributes().add(
+					XFactoryRegistry.instance().currentDefault().createAttributeLiteral(GROUP, "UNKNOWN", null));
+		}
+		if (useTimeTimestamp) {
+			filteredLog.getGlobalEventAttributes().add(XTimeExtension.ATTR_TIMESTAMP);
+		} else if (useTimestamp) {
+			filteredLog.getGlobalEventAttributes().add(
+					XFactoryRegistry.instance().currentDefault().createAttributeTimestamp(TIMESTAMP, new Date(), null));
+		}
+
+		if (useClassifier) {
+			/*
+			 * Add classifier for name and transition, use standard attributes
+			 * if possible
+			 */
+			filteredLog.getClassifiers().add(
+					new XEventAndClassifier(new XEventAttributeClassifier("Name",
+							useConceptName ? XConceptExtension.KEY_NAME : NAME), new XEventAttributeClassifier(
+							"Transition", useLifecycleTransition ? XLifecycleExtension.KEY_TRANSITION : TRANSITION)));
+		}
+
+		/*
+		 * Add filtered traces
+		 */
+		for (XTrace trace : log) {
+			XTrace filteredTrace = copy(trace);
+
+			List<String> activities = new ArrayList<String>();
+
+			/*
+			 * Add filtered events
+			 */
+			for (XEvent event : trace) {
+				XEvent filteredEvent = copy(event);
+
+				if ((useConceptName || useName) && !(useLifecycleTransition || useTransition)) {
+					copyNameTransition(event, filteredEvent, useConceptName);
+				} else if (useConceptName || useName) {
+					copyName(event, filteredEvent, useConceptName);
+				}
+				if (useLifecycleTransition || useTransition) {
+					copyTransition(event, filteredEvent, useLifecycleTransition);
+				}
+				if (useOrgResource || useResource) {
+					copyResource(event, filteredEvent, useOrgResource);
+				}
+				if (useTimeTimestamp || useTimestamp) {
+					copyTimestamp(event, filteredEvent, useTimeTimestamp);
+				}
+				if (useConceptInstance || useInstance) {
+					copyInstance(event, filteredEvent, activities, useConceptInstance);
+				}
+				if (useOrgGroup || useGroup) {
+					copyGroup(event, filteredEvent, useOrgGroup);
+				}
+				if (useOrgRole || useRole) {
+					copyRole(event, filteredEvent, useOrgRole);
+				}
+
+				if (useName) {
+					filteredEvent.getAttributes().put(
+							NUMBER,
+							XFactoryRegistry.instance().currentDefault()
+									.createAttributeDiscrete(NUMBER, activities.size(), null));
+					for (XAttribute attribute : event.getAttributes().values()) {
+						if (!attribute.getKey().contains(":")) {
+							if (attribute.getKey().equals("defectFixed")) {
+								filteredEvent.getAttributes().put(
+										attribute.getKey(),
+										XFactoryRegistry.instance().currentDefault()
+												.createAttributeBoolean(attribute.getKey(), attribute.toString().equals("true"), null));
+							} else if (attribute.getKey().equals("defectType")) {
+								filteredEvent.getAttributes().put(
+										attribute.getKey(),
+										XFactoryRegistry.instance().currentDefault()
+												.createAttributeDiscrete(attribute.getKey(), Integer.parseInt(attribute.toString()), null));
+							} else {
+								filteredEvent.getAttributes().put(attribute.getKey(), attribute);
+							}
+						}
+					}
+				}
+
+				filteredTrace.add(filteredEvent);
+			}
+			filteredLog.add(filteredTrace);
+
+		}
+		return filteredLog;
+	}
+
+	public XLog applyA1(XLog log) {
+		return apply(log, A1);
+	}
+
+	public XLog applyA2(XLog log) {
+		return apply(log, A2);
+	}
+
+	public XLog applyB1(XLog log) {
+		return apply(log, B1);
+	}
+
+	public XLog applyB2(XLog log) {
+		return apply(log, B2);
+	}
+
+	public XLog applyC1(XLog log) {
+		return apply(log, C1);
+	}
+
+	public XLog applyC2(XLog log) {
+		return apply(log, C2);
+	}
+
+	public XLog applyD1(XLog log) {
+		return apply(log, D1);
+	}
+
+	public XLog applyD2(XLog log) {
+		return apply(log, D2);
+	}
+
+	public XLog applyX1(XLog log) {
+		return apply(log, X1);
+	}
+
+	public XLog applyX2(XLog log) {
+		return apply(log, X2);
+	}
+
+	private void copyGroup(XEvent event, XEvent filteredEvent, boolean useExtension) {
+		Set<String> groups = new HashSet<String>();
+		groups.add("System");
+		groups.add("Tester");
+		groups.add("Solver");
+		Map<String, String> conversion = new HashMap<String, String>();
+		conversion.put("Tester", "Groups 2 and 4");
+		conversion.put("System", "Group -");
+		conversion.put("Solver", "Groups 1, 3, and 5");
+		for (String group : groups) {
+			if (XOrganizationalExtension.instance().extractResource(event).startsWith(group)) {
+				if (useExtension) {
+					XOrganizationalExtension.instance().assignGroup(filteredEvent, conversion.get(group));
+				} else {
+					filteredEvent.getAttributes().put(GROUP,
+							XFactoryRegistry.instance().currentDefault().createAttributeLiteral(GROUP, conversion.get(group), null));
+				}
+			}
+		}
+	}
+
+	private void copyInstance(XEvent event, XEvent filteredEvent, List<String> activities, boolean useExtension) {
+		activities.add(XConceptExtension.instance().extractName(event) + " + "
+				+ XLifecycleExtension.instance().extractTransition(event));
+		if (useExtension) {
+			XConceptExtension.instance().assignInstance(
+					filteredEvent,
+					"instance "
+							+ count(activities, XConceptExtension.instance().extractName(event) + " + "
+									+ XLifecycleExtension.instance().extractTransition(event)));
+		} else {
+			filteredEvent.getAttributes().put(
+					INSTANCE,
+					XFactoryRegistry
+							.instance()
+							.currentDefault()
+							.createAttributeLiteral(
+									INSTANCE,
+									"instance "
+											+ count(activities, XConceptExtension.instance().extractName(event) + " + "
+													+ XLifecycleExtension.instance().extractTransition(event)), null));
+		}
+	}
+
+	private void copyName(XEvent event, XEvent filteredEvent, boolean useExtension) {
+		if (useExtension) {
+			XConceptExtension.instance().assignName(filteredEvent, XConceptExtension.instance().extractName(event));
+		} else {
+			filteredEvent.getAttributes().put(
+					NAME,
+					XFactoryRegistry.instance().currentDefault()
+							.createAttributeLiteral(NAME, XConceptExtension.instance().extractName(event), null));
+		}
+	}
+
+	private void copyRole(XEvent event, XEvent filteredEvent, boolean useExtension) {
+		Set<String> roles = new HashSet<String>();
+		roles.add("Tester");
+		roles.add("SolverC");
+		roles.add("SolverS");
+		Map<String, String> conversion = new HashMap<String, String>();
+		conversion.put("Tester", "Role 9");
+		conversion.put("SolverC", "Role 10");
+		conversion.put("SolverS", "Roles 1, 2, and 3");
+		for (String role : roles) {
+			if (XOrganizationalExtension.instance().extractResource(event).startsWith(role)) {
+				if (useExtension) {
+					XOrganizationalExtension.instance().assignRole(filteredEvent, conversion.get(role));
+				} else {
+					filteredEvent.getAttributes().put(ROLE,
+							XFactoryRegistry.instance().currentDefault().createAttributeLiteral(ROLE, conversion.get(role), null));
+				}
+			}
+		}
+	}
+
+	private void copyNameTransition(XEvent event, XEvent filteredEvent, boolean useExtension) {
+		if (useExtension) {
+			XConceptExtension.instance().assignName(
+					filteredEvent,
+					XConceptExtension.instance().extractName(event) + "+"
+							+ XLifecycleExtension.instance().extractTransition(event));
+		} else {
+			filteredEvent.getAttributes().put(
+					NAME,
+					XFactoryRegistry
+							.instance()
+							.currentDefault()
+							.createAttributeLiteral(
+									NAME,
+									XConceptExtension.instance().extractName(event) + "+"
+											+ XLifecycleExtension.instance().extractTransition(event), null));
+		}
+	}
+
+	private void copyResource(XEvent event, XEvent filteredEvent, boolean useExtension) {
+		if (useExtension) {
+			XOrganizationalExtension.instance().assignResource(filteredEvent,
+					XOrganizationalExtension.instance().extractResource(event));
+		} else {
+			filteredEvent.getAttributes().put(
+					RESOURCE,
+					XFactoryRegistry
+							.instance()
+							.currentDefault()
+							.createAttributeLiteral(RESOURCE,
+									XOrganizationalExtension.instance().extractResource(event), null));
+		}
+
+	}
+
+	private void copyTimestamp(XEvent event, XEvent filteredEvent, boolean useExtension) {
+		Date timestamp = XTimeExtension.instance().extractTimestamp(event);
+		timeOffset += (new Random()).nextInt(60000);
+		timestamp.setTime(timestamp.getTime() + timeOffset);
+		if (useExtension) {
+			XTimeExtension.instance().assignTimestamp(filteredEvent, XTimeExtension.instance().extractTimestamp(event));
+		} else {
+			filteredEvent.getAttributes().put(
+					TIMESTAMP,
+					XFactoryRegistry
+							.instance()
+							.currentDefault()
+							.createAttributeTimestamp(TIMESTAMP, XTimeExtension.instance().extractTimestamp(event),
+									null));
+		}
+	}
+
+	private void copyTransition(XEvent event, XEvent filteredEvent, boolean useExtension) {
+		if (useExtension) {
+			XLifecycleExtension.instance().assignTransition(filteredEvent,
+					XLifecycleExtension.instance().extractTransition(event));
+		} else {
+			filteredEvent.getAttributes().put(
+					TRANSITION,
+					XFactoryRegistry
+							.instance()
+							.currentDefault()
+							.createAttributeLiteral(TRANSITION,
+									XLifecycleExtension.instance().extractTransition(event), null));
+		}
+	}
+
+	private int count(List<String> activities, String name) {
+		int c = 0;
+		for (String activity : activities) {
+			if (activity.equals(name)) {
+				c++;
+			}
+		}
+		return c;
+	}
+
+	private XLog copy(XLog log) {
+		XLog filteredLog = XFactoryRegistry.instance().currentDefault().createLog();
+		XConceptExtension.instance().assignName(filteredLog, XConceptExtension.instance().extractName(log));
+		return filteredLog;
+	}
+
+	private XTrace copy(XTrace trace) {
+		XTrace filteredTrace = XFactoryRegistry.instance().currentDefault().createTrace();
+		XConceptExtension.instance().assignName(filteredTrace, XConceptExtension.instance().extractName(trace));
+		return filteredTrace;
+	}
+
+	private XEvent copy(XEvent event) {
+		return XFactoryRegistry.instance().currentDefault().createEvent();
+	}
+}

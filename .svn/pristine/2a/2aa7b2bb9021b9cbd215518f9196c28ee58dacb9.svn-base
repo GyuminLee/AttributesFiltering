@@ -1,0 +1,12 @@
+package org.processmining.ericverbeek.models;
+
+import java.util.HashSet;
+
+public class ActivitySequence extends HashSet<Activity> {
+
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = -7225783055314115452L;
+
+}

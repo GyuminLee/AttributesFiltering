@@ -1,0 +1,25 @@
+package org.processmining.ericverbeek.parameters;
+
+import java.util.HashSet;
+import java.util.Set;
+
+public class PDC2017UnduplicateParameters {
+
+	private Set<String> milestoneActivities;
+	private String duplicateActivity;
+	
+	public PDC2017UnduplicateParameters() {
+		milestoneActivities = new HashSet<String>();
+	}
+	public Set<String> getMilestoneActivities() {
+		return milestoneActivities;
+	}
+	
+	public String getDuplicateActivity() {
+		return duplicateActivity;
+	}
+	
+	public void setDuplicateActivity(String duplicateActivity) {
+		this.duplicateActivity = duplicateActivity;
+	}
+}

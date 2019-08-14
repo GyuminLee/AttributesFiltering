@@ -1,0 +1,16 @@
+package org.processmining.ericverbeek.models;
+
+import java.util.Map;
+
+import org.processmining.framework.util.Pair;
+import org.processmining.models.graphbased.directed.petrinet.PetrinetNode;
+
+public interface DeselEsparzaBlock {
+
+	public int width(double hSpace);
+	public int[] height();
+	public int getNofLayers();
+	public void doLayout(Map<PetrinetNode,Pair<Double,Double>> layout, Pair<Double,Double> position, boolean isReversed, double hSpace);
+	public boolean doSort(boolean isReversed);
+	public void doPrint(int indent);
+}

@@ -1,0 +1,25 @@
+package org.processmining.ericverbeek.models;
+
+public class Activity implements Comparable<Activity> {
+
+	private String label;
+
+	public Activity(String label) {
+		this.label = label;
+	}
+
+	public boolean equals(Object object) {
+		if (object instanceof Activity) {
+			return label.equals(((Activity) object).label);
+		}
+		return false;
+	}
+
+	public int compareTo(Activity activity) {
+		return label.compareTo(activity.label);
+	}
+
+	public int hashCode() {
+		return label.hashCode();
+	}
+}

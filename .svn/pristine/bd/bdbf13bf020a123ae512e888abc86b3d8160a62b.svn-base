@@ -1,0 +1,142 @@
+package org.processmining.ericverbeek.plugins;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import org.processmining.contexts.uitopia.UIPluginContext;
+import org.processmining.contexts.uitopia.annotations.UITopiaVariant;
+import org.processmining.ericverbeek.algorithms.DependencyAlgorithm;
+import org.processmining.framework.plugin.annotations.Plugin;
+import org.processmining.framework.plugin.annotations.PluginLevel;
+import org.processmining.framework.plugin.annotations.PluginQuality;
+import org.processmining.framework.plugin.annotations.PluginVariant;
+import org.processmining.framework.util.HTMLToString;
+
+@Plugin(name = "[admin] Master package file", quality = PluginQuality.VeryGood, level = PluginLevel.Local, parameterLabels = {}, returnLabels = { "Master package file" }, returnTypes = { HTMLToString.class }, userAccessible = true, help = "Creates the contents of the master package file, given the lists of established, runner-up, and start packages and the list of dependencies. This latter list can be generated on the ais-hudson server.")
+public class MasterPackagePlugin extends DependencyAlgorithm {
+
+	@UITopiaVariant(affiliation = UITopiaVariant.EHV, author = "H.M.W. Verbeek", email = "h.m.w.verbeek@tue.nl", pack = "EricVerbeek")
+	@PluginVariant(variantLabel = "Default", requiredParameterLabels = {})
+	public static HTMLToString info(final UIPluginContext context) {
+		return new MasterPackagePlugin();
+	}
+
+	/*
+	 * Compare packages on their lower-case names, like Hudson does. Keeps them
+	 * in-line.
+	 */
+	public Comparator<String> myComparator = new Comparator<String>() {
+		public int compare(String s, String t) {
+			return s.toLowerCase().compareTo(t.toLowerCase());
+		}
+	};
+
+	public String toHTMLString(boolean includeHTMLTags) {
+		StringBuffer buffer = new StringBuffer();
+		if (includeHTMLTags) {
+			buffer.append("<html>");
+		}
+		buffer.append("<p>&lt;?xml version=\"1.0\" encoding=\"UTF-8\"?&gt;<br>");
+		buffer.append("&lt;packages&gt;<br>");
+		buffer.append("&nbsp;&nbsp;&lt;!-- Date " + date + " --&gt;<br>");
+		Set<Integer> uniqueLevels = new HashSet<Integer>(levels.values());
+		List<Integer> sortedLevels = new ArrayList<Integer>(uniqueLevels);
+		Collections.sort(sortedLevels);
+		List<String> sortedPacks = new ArrayList<String>(levels.keySet());
+		Collections.sort(sortedPacks, myComparator);
+		/*
+		 * Export the established packages first, the runner-up packages second,
+		 * and the starter packages third.
+		 */
+		for (int level : sortedLevels) {
+			buffer.append("&nbsp;&nbsp;&lt;!-- Established " + level + " --&gt;<br>");
+			for (String pack : sortedPacks) {
+				if (levels.get(pack) == level) {
+					if (established.keySet().contains(pack)) {
+						check(pack, buffer);
+					}
+				}
+			}
+		}
+		for (int level : sortedLevels) {
+			buffer.append("&nbsp;&nbsp;&lt;!-- RunnerUp " + level + " --&gt;<br>");
+			for (String pack : sortedPacks) {
+				if (levels.get(pack) == level) {
+					if (runnerUp.keySet().contains(pack)) {
+						check(pack, buffer);
+					}
+				}
+			}
+		}
+		for (int level : sortedLevels) {
+			buffer.append("&nbsp;&nbsp;&lt;!-- Starter " + level + " --&gt;<br>");
+			for (String pack : sortedPacks) {
+				if (levels.get(pack) == level) {
+					if (starter.keySet().contains(pack)) {
+						check(pack, buffer);
+					}
+				}
+			}
+		}
+		buffer.append("&lt;/packages&gt;<br>");
+		buffer.append("</p>");
+		if (includeHTMLTags) {
+			buffer.append("</html>");
+		}
+		return buffer.toString();
+	}
+
+	public void check(String pack, StringBuffer buffer) {
+		String packURL = "http://www.promtools.org/prom6/packages/" + pack + "/packages.xml";
+		InputStream is = null;
+		try {
+			URL url = new URL(packURL);
+			is = url.openStream();
+			BufferedReader dis = new BufferedReader(new InputStreamReader(is));
+			String s;
+			while ((s = dis.readLine()) != null) {
+//				System.out.println("Checking line: " + s);						
+				int left = s.indexOf("<dependency ");
+				if (left >= 0) {
+					left = s.indexOf("name=\"", left);
+					if (left >= 0) {
+						left += 6;
+						int right = s.indexOf("\"", left);
+						String ss = s.substring(left, right);
+						System.out.println("Checking dependency: " + ss);						
+						if (!established.keySet().contains(ss) && !runnerUp.keySet().contains(ss) && !starter.keySet().contains(ss)) {
+							System.err.println("Unknown dependency: " + s);						
+						}
+					}
+				}
+			}
+		} catch (MalformedURLException mue) {
+			System.err.println("Ouch - a MalformedURLException happened.");
+			mue.printStackTrace();
+			buffer.append("&nbsp;&nbsp;&nbsp;&nbsp;&lt;!-- malformed URL repository url=\"" + packURL
+					+ "\" /--&gt;<br>");
+		} catch (IOException ioe) {
+			System.err.println("Oops - an IOException happened.");
+			ioe.printStackTrace();
+			buffer.append("&nbsp;&nbsp;&nbsp;&nbsp;&lt;!-- I/O exception repository url=\"" + packURL
+					+ "\" /--&gt;<br>");
+		} finally {
+			try {
+				is.close();
+			} catch (Exception e) {
+			}
+		}
+		buffer.append("&nbsp;&nbsp;&nbsp;&nbsp;&lt;repository url=\"" + packURL + "\" /&gt;<br>");
+
+	}
+}

@@ -1,0 +1,12 @@
+package org.processmining.ericverbeek.algorithms;
+
+import java.util.Collection;
+
+import org.processmining.ericverbeek.models.DeselEsparzaReduction;
+import org.processmining.ericverbeek.workspaces.DeselEsparzaReductionWorkspace;
+
+public interface DeselEsparzaFinderAlgorithm {
+
+	public Collection<DeselEsparzaReduction> apply(DeselEsparzaReductionWorkspace ws);
+
+}

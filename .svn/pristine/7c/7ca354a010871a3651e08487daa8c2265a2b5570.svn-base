@@ -1,0 +1,58 @@
+package org.processmining.ericverbeek.models;
+
+import java.awt.Dimension;
+import java.util.Map;
+
+import org.processmining.ericverbeek.workspaces.DeselEsparzaReductionWorkspace;
+import org.processmining.framework.util.Pair;
+import org.processmining.models.graphbased.directed.petrinet.PetrinetNode;
+
+public class DeselEsparzaNodeBlock implements DeselEsparzaBlock {
+
+	private PetrinetNode node;
+	private DeselEsparzaReductionWorkspace ws;
+	private double hSpace;
+
+	public DeselEsparzaNodeBlock(PetrinetNode node, DeselEsparzaReductionWorkspace ws) {
+		this.node = node;
+		this.ws = ws;
+	}
+
+	public int width(double hSpace) {
+		this.hSpace = hSpace;
+		Dimension dim = (ws.reversePlaceMap.keySet().contains(node)
+				? ws.layoutConnection.getSize(ws.reversePlaceMap.get(node)) : new Dimension(1, 1));
+		return (int) (ws.SCALE * dim.getWidth());
+	}
+	
+	public int[] height() {
+		Dimension dim = (ws.reversePlaceMap.keySet().contains(node)
+				? ws.layoutConnection.getSize(ws.reversePlaceMap.get(node)) : new Dimension(1, 1));
+		int[] height = new int[2];
+		height[0] = (int) (ws.SCALE * dim.getHeight()) / 2;
+		height[1] = (int) (ws.SCALE * dim.getHeight()) - height[0];
+		return height;
+	}
+
+	public int getNofLayers() {
+		return 1;
+	}
+	
+	public void doLayout(Map<PetrinetNode, Pair<Double, Double>> layout, Pair<Double, Double> position, boolean isReversed, double hSpace) {
+		layout.put(node, position);
+	}
+
+	public boolean doSort(boolean isReversed) {
+		return false;
+	}
+	
+	public void doPrint(int indent) {
+		String s = "";
+		for (int i = 0; i < indent; i++) {
+			s += "\t";
+		}
+		int[] height = height();
+		s += "Block [" + width(hSpace) + "," + height[0] + "+" + height[1] + "] " + node.getLabel();
+		System.out.println(s);
+	}
+}

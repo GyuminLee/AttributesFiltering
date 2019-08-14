@@ -1,0 +1,27 @@
+package org.processmining.ericverbeek.algorithms;
+
+import org.deckfour.xes.factory.XFactoryRegistry;
+import org.deckfour.xes.model.XLog;
+import org.deckfour.xes.model.XTrace;
+import org.processmining.ericverbeek.models.PDC2017ConstraintModel;
+import org.processmining.ericverbeek.models.PDC2017CountModel;
+
+public class PDC2017CheckConstraintModelAlgorithm {
+
+	public XLog apply(PDC2017ConstraintModel model, XLog log) {
+		XLog classifiedLog = XFactoryRegistry.instance().currentDefault().createLog();
+		XLog traceLog = XFactoryRegistry.instance().currentDefault().createLog();
+		PDC2017CreateConstraintModelAlgorithm algorithm = new PDC2017CreateConstraintModelAlgorithm();
+		
+		for (XTrace trace : log) {
+			traceLog.clear();
+			traceLog.add(trace);
+			PDC2017CountModel traceModel = algorithm.count(traceLog);
+//			traceModel.print("Trace " + XConceptExtension.instance().extractName(trace));
+			if (model.check(trace, traceModel)) {
+				classifiedLog.add(trace);
+			}
+		}
+		return classifiedLog;
+	}
+}

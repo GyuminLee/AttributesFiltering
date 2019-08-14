@@ -1,0 +1,59 @@
+package org.processmining.ericverbeek.plugins;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import org.processmining.contexts.uitopia.UIPluginContext;
+import org.processmining.contexts.uitopia.annotations.UITopiaVariant;
+import org.processmining.ericverbeek.algorithms.DependencyAlgorithm;
+import org.processmining.framework.plugin.annotations.Plugin;
+import org.processmining.framework.plugin.annotations.PluginVariant;
+import org.processmining.framework.util.HTMLToString;
+
+@Plugin(name = "[admin] Show dependency classes", parameterLabels = {}, returnLabels = { "Dependency classes" }, returnTypes = { HTMLToString.class }, userAccessible = true)
+public class DependencyOverviewPlugin extends DependencyAlgorithm {
+
+	@UITopiaVariant(affiliation = UITopiaVariant.EHV, author = "H.M.W. Verbeek", email = "h.m.w.verbeek@tue.nl", pack = "EricVerbeek")
+	@PluginVariant(variantLabel = "Default", requiredParameterLabels = {})
+	public static HTMLToString info(final UIPluginContext context) {
+		return new DependencyOverviewPlugin();
+	}
+
+	public String toHTMLString(boolean includeHTMLTags) {
+		StringBuffer buffer = new StringBuffer();
+		if (includeHTMLTags) {
+			buffer.append("<html>");
+		}
+		buffer.append("<h1>Dependency overview</h1>");
+		buffer.append("Date: " + date);
+		Set<Integer> uniqueLevels = new HashSet<Integer>(levels.values());
+		List<Integer> sortedLevels = new ArrayList<Integer>(uniqueLevels);
+		Collections.sort(sortedLevels);
+		for (int level : sortedLevels) {
+			buffer.append("<h2>" + level + "</h2>");
+			buffer.append("<ul>");
+			for (String pack : levels.keySet()) {
+				if (levels.get(pack) == level) {
+					String status = " (Unknown)";
+					if (established.keySet().contains(pack)) {
+						status = " (Established)";
+					} else if (runnerUp.keySet().contains(pack)) {
+						status = " (RunnerUp)";
+					} else if (starter.keySet().contains(pack)) {
+						status = " (Starter)";
+					}
+					buffer.append("<li>" + pack + status + "</li>");
+				}
+			}
+			buffer.append("</ul>");
+		}
+		if (includeHTMLTags) {
+			buffer.append("</html>");
+		}
+		return buffer.toString();
+	}
+
+}

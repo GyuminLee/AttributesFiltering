@@ -1,0 +1,507 @@
+package org.processmining.powergraph.algorithms;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import org.processmining.framework.util.HTMLToString;
+
+public abstract class TestAlgorithm implements HTMLToString {
+
+	private Set<String> alphabet;
+	private List<Set<String>> originalSets;
+	private Set<Set<String>> originalIsects;
+	private Set<Set<String>> deducedSets;
+	private Set<Set<Set<String>>> seenDeducedSets;
+
+	private Set<List<String>> originalArcs;
+	private int max;
+
+	public TestAlgorithm() {
+
+		// Initialize
+		originalSets = new ArrayList<Set<String>>();
+		originalIsects = new HashSet<Set<String>>();
+		alphabet = new HashSet<String>();
+		originalArcs = new HashSet<List<String>>();
+
+		// Add all arcs. First letter is source, next letters are targets.
+		addArcs("AB");
+		addArcs("BC");
+		addArcs("CEFJ");
+		addArcs("DEFJ");
+		addArcs("EGJ");
+		addArcs("FHJ");
+		addArcs("GIJ");
+		addArcs("HIJ");
+		addArcs("IK");
+		addArcs("JDEFGHIKL");
+		addArcs("KDJL");
+
+		prep(10, 0.0);
+		fill();
+
+//		greedy();
+		walk();
+	}
+
+	private void prep(int perc, double tgtRatio) {
+		int maxNofArcs = alphabet.size() * alphabet.size();
+		int nofArcs = originalArcs.size();
+
+		int threshold = ((maxNofArcs - nofArcs) * perc) / 100;
+		double maxRatio = 1.0;
+
+		while (threshold > 0 && maxRatio >= tgtRatio) {
+			String minA = "";
+			String minB = "";
+			Set<String> minInA = new HashSet<String>();
+			Set<String> minOutA = new HashSet<String>();
+			Set<String> minInB = new HashSet<String>();
+			Set<String> minOutB = new HashSet<String>();
+			maxRatio = -1.0;
+			for (String letterA : alphabet) {
+				Set<String> presetA = new HashSet<String>();
+				Set<String> postsetA = new HashSet<String>();
+				for (List<String> arc : originalArcs) {
+					if (arc.get(1).equals(letterA)) {
+						presetA.add(arc.get(0));
+					}
+					if (arc.get(0).equals(letterA)) {
+						postsetA.add(arc.get(1));
+					}
+				}
+				for (String letterB : alphabet) {
+					if (letterB.equals(letterA)) {
+						continue;
+					}
+					Set<String> presetB = new HashSet<String>();
+					Set<String> postsetB = new HashSet<String>();
+					for (List<String> arc : originalArcs) {
+						if (arc.get(1).equals(letterB)) {
+							presetB.add(arc.get(0));
+						}
+						if (arc.get(0).equals(letterB)) {
+							postsetB.add(arc.get(1));
+						}
+					}
+					Set<String> addInB = new HashSet<String>(presetA);
+					addInB.removeAll(presetB);
+					Set<String> addOutB = new HashSet<String>(postsetA);
+					addOutB.removeAll(postsetB);
+					Set<String> addInA = new HashSet<String>(presetB);
+					addInA.removeAll(presetA);
+					Set<String> addOutA = new HashSet<String>(postsetB);
+					addOutA.removeAll(postsetA);
+
+					// Add no self-loops (optional?)
+					//					addInA.remove(letterA);
+					//					addOutA.remove(letterA);
+					//					addInB.remove(letterB);
+					//					addOutB.remove(letterB);
+
+					int addSize = addInA.size() + addOutA.size() + addInB.size() + addOutB.size();
+					if (addSize > 0) {
+						// Found a pair that would lead to adding some arcs.
+						int curSize = presetA.size() + postsetA.size() + presetB.size() + postsetB.size();
+						double ratio = ((double) curSize) / (curSize + addSize);
+
+						if (ratio > maxRatio) {
+							// Ratio is best so far. Memorize.
+							maxRatio = ratio;
+							minA = letterA;
+							minB = letterB;
+							minInA = addInA;
+							minOutA = addOutA;
+							minInB = addInB;
+							minOutB = addOutB;
+						}
+					}
+				}
+			}
+			if (maxRatio >= tgtRatio) {
+				// Best ratio exceeds threshold, apply.
+				System.out.println("" + maxRatio + " " + minA + minB + minInA + minOutA + minInB + minOutB);
+
+				for (String inA : minInA) {
+					addArcs(inA + minA);
+					threshold--;
+				}
+				for (String inB : minInB) {
+					addArcs(inB + minB);
+					threshold--;
+				}
+				for (String outA : minOutA) {
+					addArcs(minA + outA);
+					threshold--;
+				}
+				for (String outB : minOutB) {
+					addArcs(minB + outB);
+					threshold--;
+				}
+			}
+		}
+	}
+
+	private void fill() {
+		// Construct remainder from the arcs.
+		for (String letter : alphabet) {
+			Set<String> preset = new HashSet<String>();
+			Set<String> postset = new HashSet<String>();
+			for (List<String> arc : originalArcs) {
+				if (arc.get(1).equals(letter)) {
+					preset.add(arc.get(0));
+				}
+				if (arc.get(0).equals(letter)) {
+					postset.add(arc.get(1));
+				}
+			}
+			if (!preset.isEmpty() && !originalSets.contains(preset)) {
+				originalSets.add(preset);
+			}
+			if (!postset.isEmpty() && !originalSets.contains(postset)) {
+				originalSets.add(postset);
+			}
+		}
+
+		originalIsects.addAll(originalSets);
+		int size = originalIsects.size();
+		int oldSize = 0;
+		while (size > oldSize) {
+			Set<Set<String>> newIsects = new HashSet<Set<String>>(originalIsects);
+			for (Set<String> clusterA : originalIsects) {
+				for (Set<String> clusterB : originalIsects) {
+					Set<String> isectAB = new HashSet<String>(clusterA);
+					isectAB.retainAll(clusterB);
+					if (!isectAB.isEmpty()) {
+						newIsects.add(isectAB);
+					}
+				}
+			}
+			originalIsects = newIsects;
+			oldSize = size;
+			size = originalIsects.size();
+		}
+		//		System.out.println("Sets: " + originalSets);		
+	}
+
+	private Set<String> preset(String letter) {
+		Set<String> preset = new HashSet<String>();
+		for (List<String> arc : originalArcs) {
+			if (arc.get(1).equals(letter)) {
+				preset.add(arc.get(0));
+			}
+		}
+		return preset;
+	}
+
+	private Set<String> postset(String letter) {
+		Set<String> postset = new HashSet<String>();
+		for (List<String> arc : originalArcs) {
+			if (arc.get(0).equals(letter)) {
+				postset.add(arc.get(1));
+			}
+		}
+		return postset;
+	}
+
+	private Map<Set<String>, Set<String>> presetCache = new HashMap<Set<String>, Set<String>>();
+	private Map<Set<String>, Set<String>> postsetCache = new HashMap<Set<String>, Set<String>>();
+
+	private Set<String> preset(Set<String> letters) {
+		if (presetCache.containsKey(letters)) {
+			return presetCache.get(letters);
+		}
+		Set<String> preset = new HashSet<String>();
+		for (String letter : letters) {
+			preset.addAll(preset(letter));
+		}
+		presetCache.put(letters, preset);
+		return preset;
+	}
+
+	private Set<String> postset(Set<String> letters) {
+		if (postsetCache.containsKey(letters)) {
+			return postsetCache.get(letters);
+		}
+		Set<String> postset = new HashSet<String>();
+		for (String letter : letters) {
+			postset.addAll(postset(letter));
+		}
+		postsetCache.put(letters, postset);
+		return postset;
+	}
+
+	private void greedy() {
+		Set<Set<String>> toDo = new HashSet<Set<String>>();
+		max = -1;
+
+		for (String letter : alphabet) {
+			Set<String> cluster = new HashSet<String>();
+			cluster.add(letter);
+			toDo.add(cluster);
+		}
+		deducedSets = new HashSet<Set<String>>(toDo);
+		boolean stable = false;
+
+		while (!stable) {
+			stable = true;
+			int maxScore = alphabet.size();
+			Set<String> bestClusterA = null;
+			Set<String> bestClusterB = null;
+			for (Set<String> clusterA : toDo) {
+				for (Set<String> clusterB : toDo) {
+					if (clusterB == clusterA) {
+						continue;
+					}
+					Set<String> presetA = preset(clusterA);
+					Set<String> presetB = preset(clusterB);
+					Set<String> postsetA = postset(clusterA);
+					Set<String> postsetB = postset(clusterB);
+
+					Set<String> unionPresetAB = new HashSet<String>(presetA);
+					unionPresetAB.addAll(presetB);
+					Set<String> unionPostsetAB = new HashSet<String>(postsetA);
+					unionPostsetAB.addAll(postsetB);
+
+					Set<String> isectPresetAB = new HashSet<String>(presetA);
+					isectPresetAB.retainAll(presetB);
+					Set<String> isectPostsetAB = new HashSet<String>(postsetA);
+					isectPostsetAB.retainAll(postsetB);
+
+					if (isectPresetAB.size() > 0 || isectPostsetAB.size() > 0) {
+						int score = (unionPresetAB.size() - isectPresetAB.size())
+								+ (unionPostsetAB.size() - isectPostsetAB.size());
+						if (score < maxScore) {
+							maxScore = score;
+							bestClusterA = clusterA;
+							bestClusterB = clusterB;
+						}
+					}
+				}
+			}
+			if (bestClusterA != null && bestClusterB != null) {
+				toDo.remove(bestClusterA);
+				toDo.remove(bestClusterB);
+				Set<String> cluster = new HashSet<String>(bestClusterA);
+				cluster.addAll(bestClusterB);
+				toDo.add(cluster);
+				deducedSets.add(cluster);
+				stable = false;
+			}
+		}
+		seenDeducedSets = new HashSet<Set<Set<String>>>();
+		check(deducedSets);
+	}
+
+	private void addArcs(String s) {
+		String source = s.substring(0, 1);
+		s = s.substring(1);
+		alphabet.add(source);
+		while (!s.isEmpty()) {
+			String target = s.substring(0, 1);
+			List<String> arc = new ArrayList<String>();
+			arc.add(source);
+			arc.add(target);
+			s = s.substring(1);
+			alphabet.add(target);
+			originalArcs.add(arc);
+		}
+	}
+
+	private void walk() {
+		deducedSets = new HashSet<Set<String>>();
+		seenDeducedSets = new HashSet<Set<Set<String>>>();
+		max = -1;
+
+		walk(0);
+	}
+
+	private void walk(int index) {
+		Set<String> set = originalSets.get(index);
+		//		System.out.println(deducedSets + ", " + set);
+		if (set.size() == 1) {
+			deducedSets.add(set);
+			if (index == originalSets.size() - 1) {
+				check(deducedSets);
+			} else {
+				walk(index + 1);
+			}
+			deducedSets.remove(set);
+		} else {
+			Map<String, Integer> parts = new HashMap<String, Integer>();
+			List<String> list = new ArrayList<String>(set);
+			parts.put(list.get(0), 1);
+			walk(index, parts, 1, list);
+		}
+	}
+
+	private void walk(int index, Map<String, Integer> parts, int partIndex, List<String> list) {
+		for (int j = 1; j <= parts.get(list.get(partIndex - 1)) + 1; j++) {
+			parts.put(list.get(partIndex), j);
+			if (partIndex == list.size() - 1) {
+				Set<Set<String>> newSets = convert(parts);
+				newSets.removeAll(deducedSets);
+				boolean ok = condition1(newSets);
+				ok = ok && condition2(newSets);
+				if (ok) {
+					deducedSets.addAll(newSets);
+					if (index == originalSets.size() - 1) {
+						check(deducedSets);
+					} else {
+						walk(index + 1);
+					}
+					deducedSets.removeAll(newSets);
+				}
+			} else {
+				walk(index, parts, partIndex + 1, list);
+			}
+		}
+	}
+
+	/*
+	 * Check whether this is still a power graph.
+	 */
+	private boolean condition1(Set<Set<String>> newSets) {
+		for (Set<String> newSet : newSets) {
+			for (Set<String> deducedSet : deducedSets) {
+				if (overlap(newSet, deducedSet) && !subset(newSet, deducedSet) && !subset(deducedSet, newSet)) {
+					return false;
+				}
+			}
+		}
+		return true;
+	}
+	
+	/*
+	 * Check whether all clusters found so far can be extended to become intersection sof presets and/or postsets.
+	 */
+	private boolean condition2(Set<Set<String>> newSets) {
+		Set<String> toDo = new HashSet<String>(alphabet);
+		for (Set<String> newSet : newSets) {
+			toDo.removeAll(newSet);
+		}
+		for (Set<String> newSet : newSets) {
+			if (!originalIsects.contains(newSet)) {
+				Set<String> max = new HashSet<String>(newSet);
+				max.addAll(toDo);
+				boolean ok = false;
+				for (Set<String> isect : originalIsects) {
+					if (max.containsAll(isect)) {
+						ok = true;
+						continue;
+					}
+				}
+				if (!ok) {
+					return false;
+				}
+			}
+		}
+		return true;
+	}
+	
+	private void check(Set<Set<String>> sets) {
+		if (!seenDeducedSets.contains(deducedSets)) {
+			Set<List<Set<String>>> powerArcs = new HashSet<List<Set<String>>>();
+			for (List<String> arc : originalArcs) {
+				String source = arc.get(0);
+				String target = arc.get(1);
+				Set<String> sources = new HashSet<String>();
+				sources.add(source);
+				Set<String> targets = new HashSet<String>();
+				targets.add(target);
+				boolean seen = false;
+				for (List<Set<String>> powerArc : powerArcs) {
+					if (subset(sources, powerArc.get(0)) && subset(targets, powerArc.get(1))) {
+						seen = true;
+					}
+				}
+				if (!seen) {
+					for (Set<String> sourceSet : deducedSets) {
+						if (subset(sources, sourceSet)) {
+							for (Set<String> targetSet : deducedSets) {
+								if (subset(targets, targetSet)) {
+									boolean all = true;
+									for (String s : sourceSet) {
+										for (String t : targetSet) {
+											List<String> testArc = new ArrayList<String>();
+											testArc.add(s);
+											testArc.add(t);
+											if (!originalArcs.contains(testArc)) {
+												all = false;
+											}
+										}
+									}
+									if (all) {
+										List<Set<String>> powerArc = new ArrayList<Set<String>>();
+										powerArc.add(sourceSet);
+										powerArc.add(targetSet);
+										powerArcs.add(powerArc);
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+			Set<List<Set<String>>> bestPowerArcs = new HashSet<List<Set<String>>>();
+			for (List<Set<String>> powerArc : powerArcs) {
+				boolean best = true;
+				for (List<Set<String>> otherPowerArc : powerArcs) {
+					if (powerArc.get(0).equals(otherPowerArc.get(0)) && powerArc.get(1).equals(otherPowerArc.get(1))) {
+						// OK
+					} else if (subset(powerArc.get(0), otherPowerArc.get(0))
+							&& subset(powerArc.get(1), otherPowerArc.get(1))) {
+						best = false;
+						continue;
+					}
+				}
+				if (best) {
+					bestPowerArcs.add(powerArc);
+				}
+			}
+			int cnt = bestPowerArcs.size();
+			if (max == -1 || max >= cnt) {
+				System.out.println("---");
+				System.out.println(sets);
+				System.out.println(bestPowerArcs);
+				System.out.println(cnt);
+				max = cnt;
+			}
+
+			seenDeducedSets.add(deducedSets);
+		}
+	}
+
+	private boolean overlap(Set<String> set1, Set<String> set2) {
+		Set<String> set = new HashSet<String>(set1);
+		set.retainAll(set2);
+		return !set.isEmpty();
+	}
+
+	private boolean subset(Set<String> set1, Set<String> set2) {
+		Set<String> set = new HashSet<String>(set1);
+		set.removeAll(set2);
+		return set.isEmpty();
+	}
+
+	private Set<Set<String>> convert(Map<String, Integer> parts) {
+		Map<Integer, Set<String>> map = new HashMap<Integer, Set<String>>();
+		for (int i : parts.values()) {
+			map.put(i, new HashSet<String>());
+		}
+		for (String s : parts.keySet()) {
+			map.get(parts.get(s)).add(s);
+		}
+		Map<Integer, Set<String>> newMap = new HashMap<Integer, Set<String>>();
+		for (Integer i : map.keySet()) {
+			if (map.get(i).size() > 0) {
+				newMap.put(i, map.get(i));
+			}
+		}
+		return new HashSet<Set<String>>(newMap.values());
+	}
+}

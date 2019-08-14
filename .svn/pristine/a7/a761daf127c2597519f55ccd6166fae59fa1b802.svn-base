@@ -1,0 +1,15 @@
+package org.processmining.ericverbeek.algorithms;
+
+import javax.swing.JComponent;
+
+import org.processmining.contexts.uitopia.UIPluginContext;
+import org.processmining.graphvisualizers.algorithms.GraphVisualizerAlgorithm;
+import org.processmining.plugins.graphviz.dot.Dot;
+import org.processmining.plugins.graphviz.visualisation.DotPanel;
+
+public class PDC2017VisualizerAlgorithm extends GraphVisualizerAlgorithm {
+
+	public JComponent apply(UIPluginContext context, Dot graph) {
+		return new DotPanel(graph);
+	}
+}

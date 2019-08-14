@@ -1,0 +1,145 @@
+package org.processmining.ericverbeek.models;
+
+import java.util.Map;
+
+import org.processmining.ericverbeek.workspaces.DeselEsparzaReductionWorkspace;
+import org.processmining.framework.util.Pair;
+import org.processmining.models.graphbased.directed.petrinet.PetrinetNode;
+
+public class DeselEsparzaVerticalBlock implements DeselEsparzaBlock {
+
+	private final int NOFLAYOUTS = 2;
+	private DeselEsparzaBlock[] layouts;
+	private DeselEsparzaReductionWorkspace ws;
+	private boolean[] isReversed;
+	public final static int VALIGNCENTER = 0;
+	public final static int VALIGNTOP = 1;
+	public final static int VALIGNBOTTOM = 2;
+	private int vAlign;
+	private double hSpace;
+
+	public DeselEsparzaVerticalBlock(DeselEsparzaBlock topLayout, DeselEsparzaBlock bottomLayout,
+			DeselEsparzaReductionWorkspace ws, boolean isReversed) {
+		this(topLayout, bottomLayout, ws, isReversed, VALIGNCENTER);
+	}
+
+	public DeselEsparzaVerticalBlock(DeselEsparzaBlock topLayout, DeselEsparzaBlock bottomLayout,
+			DeselEsparzaReductionWorkspace ws, boolean isReversed, int vAlign) {
+		layouts = new DeselEsparzaBlock[NOFLAYOUTS];
+		layouts[0] = topLayout;
+		layouts[1] = bottomLayout;
+		this.ws = ws;
+		this.isReversed = new boolean[NOFLAYOUTS];
+		this.isReversed[0] = false;
+		this.isReversed[1] = isReversed;
+		this.vAlign = vAlign;
+	}
+
+	public int width(double hSpace) {
+		this.hSpace = hSpace;
+		int width = 0;
+		for (int i = 0; i < NOFLAYOUTS; i++) {
+			width = Math.max(width, layouts[i].width(hSpace));
+		}
+		return width;
+	}
+
+	public int[] height() {
+		int[] height = new int[2];
+		int[] heightTop = layouts[0].height();
+		int[] heightBottom = layouts[1].height();
+		height[0] = 0;
+		height[1] = 0;
+		switch (vAlign) {
+			case VALIGNCENTER :
+				height[0] = (int) (heightTop[0] + heightTop[1] + ws.VSPACE + heightBottom[0] + heightBottom[1]) / 2;
+				break;
+			case VALIGNTOP:
+				height[0] = heightTop[0];
+				break;
+			case VALIGNBOTTOM:
+				height[0] = (int) (heightTop[0] + heightTop[1] + ws.VSPACE + heightBottom[0]);
+				break;
+		}
+		height[1] = (int) (heightTop[0] + heightTop[1] + ws.VSPACE + heightBottom[0] + heightBottom[1]) - height[0];
+		return height;
+	}
+
+	public int getNofLayers() {
+		int n = 0;
+		for (int i = 0; i < NOFLAYOUTS; i++) {
+			n = Math.max(n, layouts[i].getNofLayers());
+		}
+		return n;
+	}
+
+	public void doLayout(Map<PetrinetNode, Pair<Double, Double>> layout, Pair<Double, Double> position,
+			boolean isReversed, double hSpace) {
+		int width = width(hSpace);
+		for (int i = 0; i < NOFLAYOUTS; i++) {
+			int nofLayers = layouts[i].getNofLayers();
+			if (nofLayers == 1) {
+				double offset = (width - layouts[i].width(hSpace)) / 2;
+				Pair<Double, Double> offsetPosition = new Pair<Double, Double>(position.getFirst() + offset,
+						position.getSecond());
+				layouts[i].doLayout(layout, offsetPosition, (this.isReversed[i] ? !isReversed : isReversed), hSpace);
+				int height[] = layouts[i].height();
+				position = new Pair<Double, Double>(position.getFirst(),
+						position.getSecond() + height[0] + height[1] + ws.VSPACE);
+			} else {
+				double offset = (width - layouts[i].width(hSpace)) / ((nofLayers - 1) * 2);
+				Pair<Double, Double> offsetPosition = new Pair<Double, Double>(position.getFirst(),
+						position.getSecond());
+				layouts[i].doLayout(layout, offsetPosition, (this.isReversed[i] ? !isReversed : isReversed),
+						hSpace + 2 * offset);
+				int height[] = layouts[i].height();
+				position = new Pair<Double, Double>(position.getFirst(),
+						position.getSecond() + height[0] + height[1] + ws.VSPACE);
+			}
+		}
+	}
+
+	public boolean doSort(boolean isRev) {
+		if (combine(isRev, isReversed[0]) && combine(isRev, !isReversed[1])) {
+			DeselEsparzaBlock layout = layouts[1];
+			layouts[1] = layouts[0];
+			layouts[0] = layout;
+			isReversed[1] = combine(isRev, true);
+			isReversed[0] = combine(isRev, false);
+			return true;
+		} else if (combine(isRev, !isReversed[1]) && layouts[0] instanceof DeselEsparzaVerticalBlock
+				&& combine(isRev, ((DeselEsparzaVerticalBlock) layouts[0]).isReversed[1])) {
+			DeselEsparzaBlock layout = layouts[1];
+			layouts[1] = ((DeselEsparzaVerticalBlock) layouts[0]).layouts[1];
+			((DeselEsparzaVerticalBlock) layouts[0]).layouts[1] = layout;
+			isReversed[1] = combine(isRev, true);
+			((DeselEsparzaVerticalBlock) layouts[0]).isReversed[1] = combine(isRev, false);
+			return true;
+		} else if (combine(isRev, isReversed[0]) && layouts[1] instanceof DeselEsparzaVerticalBlock
+				&& !combine(isRev, ((DeselEsparzaVerticalBlock) layouts[1]).isReversed[0])) {
+			DeselEsparzaBlock layout = layouts[0];
+			layouts[0] = ((DeselEsparzaVerticalBlock) layouts[1]).layouts[0];
+			((DeselEsparzaVerticalBlock) layouts[0]).layouts[0] = layout;
+			isReversed[0] = combine(isRev, false);
+			((DeselEsparzaVerticalBlock) layouts[1]).isReversed[0] = combine(isRev, true);
+			return true;
+		}
+		return layouts[0].doSort(combine(isRev, isReversed[0])) || layouts[1].doSort(combine(isRev, isReversed[1]));
+	}
+
+	private boolean combine(boolean isRev, boolean isReversed) {
+		return isRev ? !isReversed : isReversed;
+	}
+
+	public void doPrint(int indent) {
+		String s = "";
+		for (int i = 0; i < indent; i++) {
+			s += "\t";
+		}
+		int[] height = height();
+		s += "Vertical [" + width(hSpace) + "," + height[0] + "+" + height[1] + "] " + isReversed[0] + " " + isReversed[1];
+		System.out.println(s);
+		layouts[0].doPrint(indent + 1);
+		layouts[1].doPrint(indent + 1);
+	}
+}

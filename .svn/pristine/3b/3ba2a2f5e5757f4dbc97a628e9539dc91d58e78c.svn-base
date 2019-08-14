@@ -1,0 +1,155 @@
+package org.processmining.ericverbeek.plugins;
+
+import java.awt.Dimension;
+import java.awt.geom.Point2D;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.processmining.acceptingpetrinet.models.AcceptingPetriNet;
+import org.processmining.contexts.uitopia.annotations.UITopiaVariant;
+import org.processmining.ericverbeek.algorithms.DeselEsparzaLayoutAlgorithm;
+import org.processmining.ericverbeek.workspaces.DeselEsparzaReductionWorkspace;
+import org.processmining.framework.plugin.PluginContext;
+import org.processmining.framework.plugin.annotations.Plugin;
+import org.processmining.framework.plugin.annotations.PluginVariant;
+import org.processmining.framework.util.Pair;
+import org.processmining.models.connections.GraphLayoutConnection;
+import org.processmining.models.graphbased.directed.petrinet.PetrinetEdge;
+import org.processmining.models.graphbased.directed.petrinet.PetrinetNode;
+import org.processmining.models.graphbased.directed.petrinet.elements.Arc;
+import org.processmining.models.graphbased.directed.petrinet.elements.Place;
+import org.processmining.models.graphbased.directed.petrinet.elements.Transition;
+
+@Plugin(name = "Layout net", parameterLabels = { "Accepting Petri net" }, returnLabels = {
+		"Layed out net" }, returnTypes = { AcceptingPetriNet.class }, userAccessible = true)
+public class DeselEsparzaLayoutPlugin extends DeselEsparzaLayoutAlgorithm {
+
+	private DeselEsparzaReductionWorkspace ws;
+
+	@UITopiaVariant(affiliation = UITopiaVariant.EHV, author = "H.M.W. Verbeek", email = "h.m.w.verbeek@tue.nl")
+	@PluginVariant(variantLabel = "Default", requiredParameterLabels = { 0 })
+	public AcceptingPetriNet run(PluginContext context, AcceptingPetriNet net) {
+
+		ws = new DeselEsparzaReductionWorkspace(net);
+		ws.layoutConnection = new GraphLayoutConnection(ws.net.getNet());
+
+		Map<Pair<Place, Place>, Transition> map = new HashMap<Pair<Place, Place>, Transition>();
+		for (Transition transition : ws.workNet.getNet().getTransitions()) {
+			Place sourcePlace = (Place) ws.workNet.getNet().getInEdges(transition).iterator().next().getSource();
+			Place targetPlace = (Place) ws.workNet.getNet().getOutEdges(transition).iterator().next().getTarget();
+			map.put(new Pair<Place, Place>(sourcePlace, targetPlace), transition);
+		}
+
+		while (apply(ws))
+			;
+		Map<PetrinetNode, Pair<Double, Double>> layout = layout(ws);
+		for (PetrinetNode node : layout.keySet()) {
+			System.out.println("[DeselEsparzaLayoutPlugin] " + node + ": " + layout.get(node));
+		}
+
+		for (PetrinetEdge<?, ?> edge : ws.net.getNet().getEdges()) {
+			ws.layoutConnection.setEdgePoints(edge, new ArrayList<Point2D>());
+		}
+		for (Place place : ws.net.getNet().getPlaces()) {
+			if (ws.placeMap.containsKey(place) && layout.containsKey(ws.placeMap.get(place))) {
+				ws.layoutConnection.setPosition(place,
+						new Point2D.Double(ws.OFFSET + (layout.get(ws.placeMap.get(place)).getFirst() / ws.SCALE),
+								ws.OFFSET + (layout.get(ws.placeMap.get(place)).getSecond() / ws.SCALE)));
+			}
+		}
+		for (Transition transition : ws.net.getNet().getTransitions()) {
+			if (ws.transitionMap.containsKey(transition) && layout.containsKey(ws.transitionMap.get(transition))) {
+				ws.layoutConnection.setPosition(transition,
+						new Point2D.Double(
+								ws.OFFSET + (layout.get(ws.transitionMap.get(transition)).getFirst() / ws.SCALE),
+								ws.OFFSET + (layout.get(ws.transitionMap.get(transition)).getSecond() / ws.SCALE)));
+			}
+		}
+		for (PetrinetEdge<?, ?> edge : ws.net.getNet().getEdges()) {
+			List<Point2D> edgePoints = new ArrayList<Point2D>();
+			if (edge instanceof Arc) {
+				Arc arc = (Arc) edge;
+				PetrinetNode sourceNode = arc.getSource();
+				PetrinetNode targetNode = arc.getTarget();
+				Place sourcePlace;
+				Place targetPlace;
+				if (sourceNode instanceof Place) {
+					sourcePlace = ws.placeMap.get(sourceNode);
+					targetPlace = ws.transitionMap.get(targetNode);
+				} else {
+					sourcePlace = ws.transitionMap.get(sourceNode);
+					targetPlace = ws.placeMap.get(targetNode);
+				}
+				Pair<Double, Double> sourcePosition = layout.get(sourcePlace);
+				Pair<Double, Double> targetPosition = layout.get(targetPlace);
+				Dimension sourceDimension = ws.layoutConnection.getSize(sourceNode);
+				Dimension targetDimension = ws.layoutConnection.getSize(targetNode);
+				Transition transition = map.get(new Pair<Place, Place>(sourcePlace, targetPlace));
+				Pair<Double, Double> transitionPosition = layout.get(transition);
+				Dimension transitionDimension = new Dimension(0, 0);
+				addEdges(edgePoints, getPoint(sourcePosition, sourceDimension),
+						getPoint(targetPosition, targetDimension), getPoint(transitionPosition, transitionDimension),
+						sourceDimension.getWidth() / 2.0 + 10.0, targetDimension.getWidth() / 2.0 + 10.0);
+			}
+			ws.layoutConnection.setEdgePoints(edge, edgePoints);
+		}
+//		return ws.workNet;
+		ws.layoutConnection.setLayedOut(true);
+		context.getConnectionManager().addConnection(ws.layoutConnection);
+		return ws.net;
+	}
+
+	private void addEdges(List<Point2D> edgePoints, Point2D pointA, Point2D pointC, Point2D pointB, double distA,
+			double distC) {
+		if ((pointA.getX() > pointB.getX() && pointB.getX() > pointC.getX())
+				|| (pointA.getX() < pointB.getX() && pointB.getX() < pointC.getX())) {
+			//			if (Math.abs(pointA.getX() - pointC.getX()) > 80.0) {
+			Point2D midPoint = getMidPoint(getFracPoint(pointA, pointB, 0.1), getFracPoint(pointC, pointB, 0.1));
+			Point2D point = getFracPoint(pointA, midPoint, 0.25);
+			if (distance(pointA, point) > distA && distance(pointC, point) > distC) {
+				edgePoints.add(point);
+			}
+			point = getFracPoint(pointC, midPoint, 0.25);
+			if (distance(pointA, point) > distA && distance(pointC, point) > distC) {
+				edgePoints.add(point);
+			}
+			//			}
+		} else {
+			//			if (Math.abs(pointA.getX() - pointC.getX()) > 80.0) {
+			
+			Point2D midPoint = getMidPoint(getFracPoint(pointA, pointB, 0.0, 1.1), getFracPoint(pointC, pointB, 0.0, 1.1));
+//			Point2D midPoint = getMidPoint(getFracPoint(pointA, pointB, -0.1, 1.1), getFracPoint(pointC, pointB, -0.1, 1.1));
+			Point2D point = midPoint;
+			if (distance(pointA, point) > distA && distance(pointC, point) > distC) {
+				edgePoints.add(point);
+			}
+			//			}
+		}
+	}
+
+	private double distance(Point2D pointA, Point2D pointB) {
+		return Math.sqrt(Math.pow(pointA.getX() - pointB.getX(), 2.0) + Math.pow(pointA.getY() - pointB.getY(), 2.0));
+	}
+
+	private Point2D getPoint(Pair<Double, Double> position, Dimension size) {
+		return new Point2D.Double(ws.OFFSET + (position.getFirst() / ws.SCALE) + 0.5 * size.getWidth(),
+				ws.OFFSET + (position.getSecond() / ws.SCALE) + 0.5 * size.getHeight());
+	}
+
+	private Point2D getFracPoint(Point2D pointA, Point2D pointB, double frac) {
+		return new Point2D.Double(frac * pointA.getX() + (1.0 - frac) * pointB.getX(),
+				frac * pointA.getY() + (1.0 - frac) * pointB.getY());
+	}
+
+	private Point2D getFracPoint(Point2D pointA, Point2D pointB, double fracX, double fracY) {
+		return new Point2D.Double(fracX * pointA.getX() + (1.0 - fracX) * pointB.getX(),
+				fracY * pointA.getY() + (1.0 - fracY) * pointB.getY());
+	}
+
+	private Point2D getMidPoint(Point2D pointA, Point2D pointB) {
+		return getFracPoint(pointA, pointB, 0.5);
+	}
+
+}

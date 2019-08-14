@@ -1,0 +1,92 @@
+package org.processmining.ericverbeek.models;
+
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
+
+import org.processmining.ericverbeek.workspaces.DeselEsparzaReductionWorkspace;
+import org.processmining.models.graphbased.directed.petrinet.PetrinetNode;
+import org.processmining.models.graphbased.directed.petrinet.elements.Place;
+import org.processmining.models.graphbased.directed.petrinet.elements.Transition;
+import org.processmining.models.semantics.petrinet.Marking;
+
+public class DeselEsparzaPlaceReduction implements DeselEsparzaReduction {
+
+	/*
+	 * The place reduced
+	 */
+	private Place place;
+	/*
+	 * The places on which the reduced place was nonnegatively linearly
+	 * dependent.
+	 */
+	private Set<Place> places;
+
+	public Place getPlace() {
+		return place;
+	}
+
+	public void setPlace(Place place) {
+		this.place = place;
+	}
+
+	public Set<Place> getPlaces() {
+		return places;
+	}
+
+	public void setPlaces(Set<Place> places) {
+		this.places = places;
+	}
+
+	public void apply(DeselEsparzaReductionWorkspace ws) {
+		ws.workNet.getNet().removePlace(place);
+		Marking initialMarking = new Marking(ws.workNet.getInitialMarking());
+		drain(initialMarking, place);
+		ws.workNet.setInitialMarking(initialMarking);
+		Set<Marking> finalMarkings = new HashSet<Marking>();
+		for (Marking marking : ws.workNet.getFinalMarkings()) {
+			Marking finalMarking = new Marking(marking);
+			drain(finalMarking, place);
+			finalMarkings.add(finalMarking);
+		}
+		ws.workNet.setFinalMarkings(finalMarkings);
+		// Update layout
+		if (!ws.presets.get(place).isEmpty()) {
+			Transition preTransition = (Transition) ws.presets.get(place).iterator().next();
+			Collection<PetrinetNode> siblingPlaces = ws.postsets.get(preTransition);
+			siblingPlaces.retainAll(places);
+			Place siblingPlace = (Place) siblingPlaces.iterator().next();
+			DeselEsparzaBlock block = new DeselEsparzaVerticalBlock(ws.layoutMap.get(siblingPlace),
+					ws.layoutMap.get(place), ws, false);
+			ws.layoutMap.put(siblingPlace, block);
+		} else if (!ws.postsets.get(place).isEmpty()) {
+			Transition postTransition = (Transition) ws.postsets.get(place).iterator().next();
+			Collection<PetrinetNode> siblingPlaces = ws.presets.get(postTransition);
+			siblingPlaces.retainAll(places);
+			Place siblingPlace = (Place) siblingPlaces.iterator().next();
+			DeselEsparzaBlock block = new DeselEsparzaVerticalBlock(ws.layoutMap.get(siblingPlace),
+					ws.layoutMap.get(place), ws, false);
+			ws.layoutMap.put(siblingPlace, block);
+		}
+		ws.update();
+	}
+
+	private void drain(Marking marking, Place place) {
+		while (marking.occurrences(place) > 0) {
+			marking.remove(place);
+		}
+	}
+
+	public String toString() {
+		return "Place(" + place + "," + places + ")";
+	}
+
+	public double score(DeselEsparzaReductionWorkspace ws) {
+		return 1.0 / places.size();
+	}
+
+	public boolean hasOptimalScore(DeselEsparzaReductionWorkspace ws) {
+		return score(ws) == 1.0;
+	}
+}
+
