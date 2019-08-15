@@ -1,4 +1,4 @@
-package org.processmining.automatedfiltering.plugin;
+package org.processmining.attrubutesfiltering.plugin;
 
 import java.time.Duration;
 import java.time.OffsetDateTime;
@@ -165,37 +165,34 @@ public class AFAlgorithm {
 
 				int eventCountNum = eventCountingMap.get(nextEvent);
 
-				if(activityOutlierPercentageMap.get(eventArray[i+1]) < probThresholdWaitingTime) {
-					if(directFollowMap.get(directFollowRelation) * 1.0 / prevEventMap.get(prevEvent) < probThresholdDfr) {
-						isNegativeOutlier = true;
-						for(String str : selectedAttribute) {
-							String keyStr = nextEvent + separator + str;
-							int countNum = generalCountingMap.get(keyStr);
-							if(countNum * 1.0 / eventCountNum < thresholdValue) {
-								isNegativeOutlier = true;
-								System.out.println("Undesired behavior (" + keyStr + " )" + (countNum * 1.0 / eventCountNum));
-							} else {
-								System.out.println("Desired behavior (" + keyStr + " )" + (countNum * 1.0 / eventCountNum));
-								isNegativeOutlier = false;
-							}
+				if(activityOutlierPercentageMap.get(eventArray[i+1]) < probThresholdWaitingTime
+						&& directFollowMap.get(directFollowRelation) * 1.0 / prevEventMap.get(prevEvent) < probThresholdDfr) {
+					isNegativeOutlier = true;
+					for(String str : selectedAttribute) {
+						String keyStr = nextEvent + separator + str;
+						int countNum = generalCountingMap.get(keyStr);
+						if(countNum * 1.0 / eventCountNum < thresholdValue) {
+							isNegativeOutlier = true;
+							System.out.println("Undesired behavior (" + keyStr + " )" + (countNum * 1.0 / eventCountNum));
+						} else {
+							System.out.println("Desired behavior (" + keyStr + " )" + (countNum * 1.0 / eventCountNum));
+							isNegativeOutlier = false;
 						}
 					}
-
 				}
-				
 			}
 			if(isNegativeOutlier) {
 				removeSet.add(log.indexOf(trace));
 			}
 		}
-		
+
 		ArrayList<Integer> removeList = new ArrayList<Integer>(removeSet);
 		Collections.sort(removeList, Collections.reverseOrder());
 		System.out.println("The number of undesired behavior : " + removeList.size());
 		for(int i = 0; i < removeList.size(); i++) {
 			log.remove(Integer.parseInt(removeList.get(i).toString()));
 		}
-		
+
 		return log;
 	}
 

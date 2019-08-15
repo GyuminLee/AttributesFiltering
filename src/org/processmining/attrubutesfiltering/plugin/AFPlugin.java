@@ -1,4 +1,4 @@
-package org.processmining.automatedfiltering.plugin;
+package org.processmining.attrubutesfiltering.plugin;
 
 
 import java.util.List;

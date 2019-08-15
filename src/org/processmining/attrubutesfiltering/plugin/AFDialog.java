@@ -1,4 +1,4 @@
-package org.processmining.automatedfiltering.plugin;
+package org.processmining.attrubutesfiltering.plugin;
 
 import java.awt.Dimension;
 import java.awt.GridLayout;
@@ -31,15 +31,15 @@ public class AFDialog extends JPanel{
 	private ProMList<String> selectedAttributes;
 	
 	private NiceDoubleSlider waitingTimeSlider = SlickerFactory.instance()
-			.createNiceDoubleSlider("Please Selecct the Threshold", 0, 1, 0.1, Orientation.HORIZONTAL);
+			.createNiceDoubleSlider("Waiting Time Threshold", 0, 1, 0.1, Orientation.HORIZONTAL);
 	
 	private NiceDoubleSlider dfrSlider = SlickerFactory.instance()
-			.createNiceDoubleSlider("Please Selecct the Threshold", 0, 1, 0.1, Orientation.HORIZONTAL);
+			.createNiceDoubleSlider("DFR Threshold", 0, 1, 0.1, Orientation.HORIZONTAL);
 	
 	
 	
 	private NiceDoubleSlider thresholdSlider = SlickerFactory.instance()
-			.createNiceDoubleSlider("Please Selecct the Threshold", 0, 1, 0.1, Orientation.HORIZONTAL);
+			.createNiceDoubleSlider("Attributes Threshold", 0, 1, 0.1, Orientation.HORIZONTAL);
 	
 	public AFDialog(XLog log) {
 		
