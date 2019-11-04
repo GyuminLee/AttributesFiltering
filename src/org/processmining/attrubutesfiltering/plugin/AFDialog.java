@@ -37,7 +37,6 @@ public class AFDialog extends JPanel{
 			.createNiceDoubleSlider("DFR Threshold", 0, 1, 0.1, Orientation.HORIZONTAL);
 	
 	
-	
 	private NiceDoubleSlider thresholdSlider = SlickerFactory.instance()
 			.createNiceDoubleSlider("Attributes Threshold", 0, 1, 0.1, Orientation.HORIZONTAL);
 	
@@ -67,8 +66,7 @@ public class AFDialog extends JPanel{
 		add(dfrSlider);
 		add(thresholdSlider);
 		add(attrScrollPane, "0, 1");
-		
-		
+
 		
 	}
 	

@@ -16,13 +16,17 @@ import org.deckfour.xes.model.XTrace;
 
 public class AFAlgorithm {
 
-	public static XLog doFiltering(XLog log, List<String> selectedAttribute, double thresholdValue, double waitingTimeValue, double dfrValue) {
+	public static XLog doFiltering(XLog originalLog, List<String> selectedAttribute, double thresholdValue, double waitingTimeValue, double dfrValue) {
 
+		long startMillis = System.currentTimeMillis();
+		
 		System.out.println("Threshold : " + thresholdValue);
 		System.out.println("Selected Attribute :" );
 		for(String str : selectedAttribute) {
 			System.out.println(str);
 		}
+		XLog log = (XLog)originalLog.clone();
+
 
 		Map<String, Integer> generalCountingMap = new HashMap<>();
 
@@ -165,13 +169,13 @@ public class AFAlgorithm {
 
 				int eventCountNum = eventCountingMap.get(nextEvent);
 
-				if(activityOutlierPercentageMap.get(eventArray[i+1]) < probThresholdWaitingTime
+				if(activityOutlierPercentageMap.get(eventArray[i+1]) > probThresholdWaitingTime
 						&& directFollowMap.get(directFollowRelation) * 1.0 / prevEventMap.get(prevEvent) < probThresholdDfr) {
 					isNegativeOutlier = true;
 					for(String str : selectedAttribute) {
 						String keyStr = nextEvent + separator + str;
 						int countNum = generalCountingMap.get(keyStr);
-						if(countNum * 1.0 / eventCountNum < thresholdValue) {
+						if(countNum * 1.0 / eventCountNum > thresholdValue) {
 							isNegativeOutlier = true;
 							System.out.println("Undesired behavior (" + keyStr + " )" + (countNum * 1.0 / eventCountNum));
 						} else {
@@ -193,6 +197,11 @@ public class AFAlgorithm {
 			log.remove(Integer.parseInt(removeList.get(i).toString()));
 		}
 
+		long endMillis = System.currentTimeMillis();
+		
+		long executionTime = endMillis - startMillis;
+		System.out.println("ExecutionTime : " + executionTime);
+		
 		return log;
 	}
 
