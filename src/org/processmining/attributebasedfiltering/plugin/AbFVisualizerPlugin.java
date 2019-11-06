@@ -148,7 +148,6 @@ class ExportButtonListener implements ActionListener {
 			}
 		}
 		XLog outputLog = AbFAlgorithm.doFiltering(originalLog, selectedAttribute, thresholdSlider.getValue(), waitingTimeSlider.getValue(), dfrSlider.getValue(), filteringType);
-		System.out.println("Export Click!" + filteringType);
 		System.out.println("thresholdValue : " + thresholdSlider.getValue());
 		System.out.println("waitingTimeValue : " + waitingTimeSlider.getValue());
 		System.out.println("dfrValue : "  + dfrSlider.getValue());

@@ -20,10 +20,7 @@ public class AbFAlgorithm {
 
 	
 	public static XLog doFiltering(XLog originalLog, List<String> selectedAttribute, double thresholdValue, double waitingTimeValue, double dfrValue, int filteringType) {
-
-		long startMillis = System.currentTimeMillis();
 		
-		System.out.println("Threshold : " + thresholdValue);
 		System.out.println("Selected Attribute :" );
 		for(String str : selectedAttribute) {
 			System.out.println(str);
@@ -336,11 +333,9 @@ public class AbFAlgorithm {
 						for(String str : selectedAttribute) {
 							String keyStr = nextEvent + separator + str;
 							int countNum = generalCountingMap.get(keyStr);
-							if(countNum * 1.0 / eventCountNum > thresholdValue) {
+							if(countNum * 1.0 / eventCountNum < thresholdValue) {
 								isNegativeOutlier = true;
-								System.out.println("Undesired behavior (" + keyStr + " )" + (countNum * 1.0 / eventCountNum));
 							} else {
-								System.out.println("Desired behavior (" + keyStr + " )" + (countNum * 1.0 / eventCountNum));
 								isNegativeOutlier = false;
 							}
 						}
@@ -516,13 +511,6 @@ public class AbFAlgorithm {
 				log.remove(Integer.parseInt(removeList.get(i).toString()));
 			}
 		}
-		
-		
-
-		long endMillis = System.currentTimeMillis();
-		
-		long executionTime = endMillis - startMillis;
-		System.out.println("ExecutionTime : " + executionTime);
 		
 		return log;
 	}
